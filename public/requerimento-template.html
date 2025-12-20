@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>FUNSEP - Requerimentos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Verdana, Arial, sans-serif;
+            font-size: 13px;
+            background-color: #f5f5f5;
+            color: #000;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .sidebar {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #2a65b4;
+            border-bottom: 2px solid #92c1f5;
+            padding-bottom: 10px;
+        }
+
+        .menu-item {
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .menu-item:hover {
+            background-color: #e3f2fd;
+            transform: translateX(5px);
+        }
+
+        .menu-item.active {
+            background-color: #2a65b4;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .menu-item::before {
+            content: "▸";
+            font-weight: bold;
+        }
+
+        .content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-height: 500px;
+        }
+
+        .formulario {
+            display: none;
+        }
+
+        .formulario.active {
+            display: block;
+        }
+
+        .formulario h2 {
+            text-align: center;
+            color: #2a65b4;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: inline-block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: Verdana, Arial, sans-serif;
+            font-size: 13px;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="email"]:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2a65b4;
+            box-shadow: 0 0 5px rgba(42, 101, 180, 0.3);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .inline-input {
+            display: inline;
+            width: auto !important;
+            margin: 0 5px;
+        }
+
+        .checkbox-group,
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-group label,
+        .radio-group label {
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .button-group {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #2a65b4;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background-color: #1a4580;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .alert strong {
+            color: #856404;
+        }
+
+        .section-title {
+            font-weight: bold;
+            color: #2a65b4;
+            margin: 20px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 3px solid #2a65b4;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #2a65b4;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .signature-line {
+            margin: 60px 0;
+            text-align: center;
+        }
+
+        .signature-line::before {
+            content: "";
+            display: block;
+            width: 300px;
+            margin: 0 auto 10px;
+            border-top: 1px solid #000;
+        }
+
+        .observacao {
+            font-size: 11px;
+            color: #666;
+            font-style: italic;
+            margin: 10px 0;
+        }
+        /* NOVO: Espaço para deferimento */
+        .deferimento-space {
+            min-height: 100px;
+            border: 2px solid #2a65b4;
+            border-radius: 5px;
+            margin: 20px 0 30px 0;
+            padding: 15px 20px;
+            background-color: #f0f7ff;
+        }
+
+        .deferimento-space .titulo-deferimento {
+            font-weight: bold;
+            color: #2a65b4;
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .deferimento-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .deferimento-opcoes {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .deferimento-opcao {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .deferimento-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #2a65b4;
+            background-color: white;
+            display: inline-block;
+        }
+
+        .deferimento-data {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .deferimento-data label {
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .deferimento-data input {
+            padding: 5px 8px;
+            border: 1px solid #2a65b4;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+
+
+        @media print {
+            .sidebar,
+            .button-group {
+                display: none !important;
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .content {
+                box-shadow: none;
+                padding: 0;
+            }
+
+            body {
+                background: #fff;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="layout">
+            <aside class="sidebar">
+                <h2>Selecione o Requerimento</h2>
+                <div class="menu-item active" data-form="exclusao-associado">Exclusão de Associado</div>
+                <div class="menu-item" data-form="exclusao-dependente">Exclusão de Dependente</div>
+                <div class="menu-item" data-form="inclusao-associado">Inclusão de Associado</div>
+                <div class="menu-item" data-form="inclusao-dependente">Inclusão de Dependente</div>
+                <div class="menu-item" data-form="inclusao-recem-nascido">Inclusão de Recém-Nascido</div>
+                <div class="menu-item" data-form="inscricao-pensionista">Inscrição de Pensionista</div>
+                <div class="menu-item" data-form="requerimento-21-anos">Requerimento - 21 Anos</div>
+                <div class="menu-item" data-form="requerimento-diversos">Requerimento - Diversos</div>
+                <div class="menu-item" data-form="requerimento-reembolso">Requerimento - Reembolso</div>
+                <div class="menu-item" data-form="termo-ciencia">Termo de Ciência</div>
+                <div class="menu-item" data-form="termo-opcoes">Termo de Opção</div>
+            </aside>
+
+            <main class="content">
+                <!-- 1. Exclusão de Associado -->
+                <div class="formulario active" id="exclusao-associado">
+                    <h2>AOS ILUSTRÍSSIMOS DIRETORES DO FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO DO PARANÁ</h2>
+                    <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome completo:</label>
+                        <input type="text" placeholder="Nome completo" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-mail:</label>
+                        <input type="email" placeholder="seu@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Telefone:</label>
+                        <input type="text" placeholder="(00) 00000-0000">
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        Abaixo assinado(a), servidor(a) vinculado(a) ao Poder Judiciário do Estado do Paraná, venho, respeitosamente, <strong>REQUERER</strong> a minha <strong>EXCLUSÃO</strong> do quadro de associados do Funsep, juntando para tanto, carteira de sócio.
+                    </p>
+
+                    <p style="margin: 20px 0;">
+                        Autorizo o Funsep a cobrar através boleto bancário ou outro meio, os valores correspondentes a eventuais despesas de minha responsabilidade que não tenham sido apresentadas até a data do desligamento. Declaro, finalmente, ter ciência de que, em caso de retorno, terei que cumprir os prazos de carência estabelecidos pela Instrução Normativa nº 1/99.
+                    </p>
+
+                    <div style="margin: 40px 0;">
+                        <p><strong>Nestes Termos,</strong></p>
+                        <p><strong>Pede deferimento.</strong></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data:</label>
+                        Em <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD">
+                        de <input type="text" class="inline-input" size="20" placeholder="mês">
+                        de <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">Assinatura</div>
+
+                    <div class="alert">
+                        <strong>ATENÇÃO: TODOS OS CAMPOS DEVEM SER PREENCHIDOS, PARA ANDAMENTO DA SOLICITAÇÃO.</strong>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+
+                <!-- 2. Exclusão de Dependente -->
+                <div class="formulario" id="exclusao-dependente">
+                    <h2>AOS ILUSTRÍSSIMOS DIRETORES DO FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO DO PARANÁ</h2>
+                    <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome completo:</label>
+                        <input type="text" placeholder="Nome completo" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-mail:</label>
+                        <input type="email" placeholder="seu@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Telefone:</label>
+                        <input type="text" placeholder="(00) 00000-0000">
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        Abaixo assinado(a), servidor(a) vinculado(a) ao Poder Judiciário do Estado do Paraná, venho, respeitosamente, requerer a <strong>EXCLUSÃO</strong> de 
+                        <input type="text" class="inline-input" placeholder="nome do dependente" style="width: 400px;">, 
+                        meu(minha) dependente, do quadro de associados do Funsep, juntando, para tanto, carteira de beneficiário(a).
+                    </p>
+
+                    <p style="margin: 20px 0;">
+                        Autorizo o Funsep a cobrar através boleto bancário ou outro meio, os valores correspondentes a eventuais despesas de minha responsabilidade que não tenham sido apresentadas até a data do desligamento. Declaro, finalmente, ter ciência de que, em caso de retorno, o(a) dependente terá que cumprir os prazos de carência estabelecidos pela Instrução Normativa nº 1/99.
+                    </p>
+
+                    <div style="margin: 40px 0;">
+                        <p><strong>Nestes Termos,</strong></p>
+                        <p><strong>Pede deferimento.</strong></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data:</label>
+                        Em <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD">
+                        de <input type="text" class="inline-input" size="20" placeholder="mês">
+                        de <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">Assinatura</div>
+
+                    <div class="alert">
+                        <strong>ATENÇÃO: TODOS OS CAMPOS DEVEM SER PREENCHIDOS, PARA ANDAMENTO DA SOLICITAÇÃO.</strong>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+
+                <!-- 3. Inclusão de Associado -->
+                <div class="formulario" id="inclusao-associado">
+                    <h2>ILUSTRÍSSIMOS DIRETORES DO FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO DO PARANÁ</h2>
+                    
+                    <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p style="margin: 20px 0; text-align: justify;">
+                        <input type="text" class="inline-input" placeholder="Nome completo" style="width: 400px;"> abaixo assinado(a), servidor(a) vinculado(a) ao Poder Judiciário do Estado do Paraná, e-mail <input type="email" class="inline-input" placeholder="email" style="width: 300px;"> vem, respeitosamente, <strong>REQUERER</strong> a sua <strong>INSCRIÇÃO</strong> no quadro de associados do Funsep, manifestando, desde já, concordância com o desconto, em folha de pagamento, dos valores das mensalidades correspondentes ao Plano e declarando, também: <strong>a)</strong> estar ciente de que, a partir da inscrição para o plano de assistência do Funsep, com a possibilidade de utilização da Unimed-Curitiba, (com participação de 25% em consultas, exames de alto custo, exames de rotina e procedimentos) conforme contrato firmado entre aquela empresa e o referido Fundo, passará a contribuir mensalmente com base em valores definidos por faixa etária e variáveis de acordo com o tipo de acomodação escolhido para internamentos – ( ) <strong>APARTAMENTO</strong> ou ( ) <strong>ENFERMARIA</strong>; e <strong>b)</strong> ter conhecimento dos prazos de carência estabelecidos na Instrução Normativa nº 1/99, editada pelo Conselho Diretor.
+                    </p>
+
+                    <p style="margin: 20px 0;">
+                        O contrato firmado obedece ao contido na <strong>Lei nº 9656/98</strong> e demais Instruções.
+                    </p>
+
+                    <div style="margin: 40px 0;">
+                        <p><strong>P. deferimento.</strong></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data:</label>
+                        Em <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD">
+                        de <input type="text" class="inline-input" size="20" placeholder="mês">
+                        de <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">Assinatura</div>
+
+                    <div class="alert">
+                        <strong>ATENÇÃO: TODOS OS CAMPOS DEVEM SER PREENCHIDOS.</strong>
+                    </div>
+
+                    <!-- PÁGINA 2 - OBS -->
+                    <div style="margin-top: 60px; page-break-before: always;">
+                        <p class="section-title">OBS:</p>
+                        <div class="info-box">
+                            <p><strong>1.</strong> Não haverá em hipótese alguma devolução de valores pagos a título de mensalidade.</p>
+                            <p style="margin-top: 10px;"><strong>2.</strong> Será cobrada na primeira mensalidade uma taxa de inscrição de R$ 30,00 (trinta reais) por pessoa.</p>
+                            <p style="margin-top: 10px;"><strong>3.</strong> Para que seja efetuada a inscrição é necessário possuir margem consignável junto ao Departamento Econômico e Financeiro do TJ.</p>
+                        </div>
+                    </div>
+
+                    <!-- PÁGINA 3 - PRAZOS DE CARÊNCIA E DOCUMENTOS -->
+                    <div style="margin-top: 60px; page-break-before: always;">
+                        <p class="section-title">Prazos de carência (conforme Instrução Normativa nº 1/99)</p>
+
+                        <div class="info-box">
+                            <p><strong>- Consultas e exames de patologia clínica</strong> – 30 dias após o pagamento da primeira mensalidade (desconto em folha)</p>
+
+                            <p style="margin-top: 15px;"><strong>- Exames de diagnóstico e terapia, endoscopia diagnóstica em regime ambulatorial, exames radiológicos simples, histocitopatologia, exames e testes alergológicos, oftalmológicos, otorrinolaringológicos (exceto videolaringoestroboscopia), inaloterapia, provas de função pulmonar, teste ergométrico, procedimentos de reabilitação e fisioterapia</strong> - a partir do primeiro dia do terceiro mês seguinte ao pagamento da primeira mensalidade (desconto em folha)</p>
+
+                            <p style="margin-top: 15px;"><strong>- Internamentos clínicos e cirúrgicos, procedimentos cirúrgicos em regime ambulatorial, quimioterapia, radioterapia, hemodiálise e diálise peritoneal, litotripsia, videolaringoscopia cirúrgica, exames e procedimentos especiais (angiografia, arteriografia, eletroencefalograma prolongado, mapeamento cerebral e polissonografia, ultrassonografia (ecografia), tomografia computadorizada, ressonância nuclear magnética, medicina nuclear, densitometria óssea, videolaparoscopia diagnóstica e radiologia intervencionista)</strong> - a partir do primeiro dia do sexto mês seguinte ao pagamento da primeira mensalidade (desconto em folha);</p>
+
+                            <p style="margin-top: 15px;"><strong>- Parto a termo</strong> - a partir do primeiro dia do décimo mês seguinte ao pagamento da primeira mensalidade (desconto em folha).</p>
+                        </div>
+
+                        <p class="section-title" style="margin-top: 30px;">Documentos Necessários:</p>
+
+                        <div class="info-box">
+                            <p>- Fotocópia da Carteira de Identidade;</p>
+                            <p>- Fotocópia do CPF;</p>
+                            <p>- Certidão de Casamento (original) ou fotocópia autenticada (datada de até 180 dias), ou escritura pública de União Estável, fotocópia autenticada (datada de até 180 dias);</p>
+                            <p>- Certidão de Nascimento filhos menores (original);</p>
+                            <p>- Comprovante de residência;</p>
+                            <p>- Contracheque recente.</p>
+                            <p style="margin-top: 10px;"><strong>OBS: Os documentos deverão ser enviados através dos Correios.</strong></p>
+                        </div>
+                    </div>
+
+                    <!-- PÁGINA 4 - INFORMAÇÕES CADASTRAIS -->
+                    <div style="margin-top: 60px; page-break-before: always;">
+                        <p class="section-title">INFORMAÇÕES CADASTRAIS:</p>
+
+                        <div class="form-group">
+                            <label>NOME:</label>
+                            <input type="text" style="width: 100%;">
+                        </div>
+
+                        <div class="form-group">
+                            <label>ENDEREÇO:</label>
+                            <input type="text" style="width: 100%;">
+                        </div>
+
+                        <div class="form-group">
+                            <label>NÚMERO:</label>
+                            <input type="text" style="width: 120px;" class="inline-input">
+                            <label style="margin-left: 20px;">APTO:</label>
+                            <input type="text" style="width: 100px;" class="inline-input">
+                            <label style="margin-left: 20px;">BAIRRO:</label>
+                            <input type="text" style="width: 250px;" class="inline-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label>TEL (residencial):</label>
+                            <input type="text" style="width: 150px;" class="inline-input">
+                            <label style="margin-left: 20px;">TEL (comercial):</label>
+                            <input type="text" style="width: 150px;" class="inline-input">
+                            <label style="margin-left: 20px;">TEL(celular):</label>
+                            <input type="text" style="width: 150px;" class="inline-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label>CIDADE:</label>
+                            <input type="text" style="width: 250px;" class="inline-input">
+                            <label style="margin-left: 20px;">ESTADO:</label>
+                            <input type="text" style="width: 80px;" class="inline-input">
+                            <label style="margin-left: 20px;">CEP:</label>
+                            <input type="text" style="width: 120px;" class="inline-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label>DATA NASCIMENTO:</label>
+                            <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                            <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                            <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+
+                            <label style="margin-left: 20px;">ESTADO CIVIL:</label>
+                            <input type="text" style="width: 150px;" class="inline-input">
+
+                            <label style="margin-left: 20px;">SEXO:</label>
+                            <input type="text" style="width: 100px;" class="inline-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label>CPF:</label>
+                            <input type="text" style="width: 180px;" class="inline-input">
+                            <label style="margin-left: 20px;">IDENTIDADE:</label>
+                            <input type="text" style="width: 180px;" class="inline-input">
+                            <label style="margin-left: 20px;">ESTADO:</label>
+                            <input type="text" style="width: 80px;" class="inline-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label>DATA DE EXPEDIÇÃO:</label>
+                            <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                            <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                            <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+
+                            <label style="margin-left: 20px;">ÓRGÃO EXPEDIDOR:</label>
+                            <input type="text" style="width: 200px;" class="inline-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label>FILIAÇÃO (Nome da Mãe):</label>
+                            <input type="text" style="width: 100%;">
+                        </div>
+
+                        <div class="form-group">
+                            <label>e-mail:</label>
+                            <input type="email" style="width: 100%;">
+                        </div>
+
+                        <p class="section-title" style="margin-top: 30px;">SITUAÇÃO FUNCIONAL:</p>
+
+                        <div class="form-group">
+                            <label>LOTAÇÃO:</label>
+                            <input type="text" style="width: 350px;" class="inline-input">
+                            <label style="margin-left: 20px;">CARGO:</label>
+                            <input type="text" style="width: 250px;" class="inline-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label>MATRÍCULA (TJ):</label>
+                            <input type="text" style="width: 200px;" class="inline-input">
+                            <label style="margin-left: 20px;">PIS/PASEP:</label>
+                            <input type="text" style="width: 200px;" class="inline-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label>BANCO:</label>
+                            <input type="text" style="width: 200px;" class="inline-input">
+                            <label style="margin-left: 20px;">CONTA CORRENTE:</label>
+                            <input type="text" style="width: 200px;" class="inline-input">
+                            <label style="margin-left: 20px;">AGÊNCIA:</label>
+                            <input type="text" style="width: 150px;" class="inline-input">
+                        </div>
+                    </div>
+
+                    <!-- PÁGINAS 5 e 6 - RELAÇÃO DE DEPENDENTES -->
+                    <div style="margin-top: 60px; page-break-before: always;">
+                        <p class="section-title">RELAÇÃO DE DEPENDENTES:</p>
+
+                        <!-- Dependente 1 -->
+                        <div style="margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+                            <p style="font-weight: bold; margin-bottom: 15px;">Nome Completo do Dependente:</p>
+                            <input type="text" style="width: 100%; margin-bottom: 15px;">
+
+                            <div class="form-group">
+                                <label>Parentesco:</label>
+                                <input type="text" style="width: 200px;" class="inline-input">
+                                <label style="margin-left: 20px;">Sexo:</label>
+                                <input type="text" style="width: 120px;" class="inline-input">
+                                <label style="margin-left: 20px;">Data de Nascimento:</label>
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                                <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+                            </div>
+
+                            <div class="form-group">
+                                <label>RG:</label>
+                                <input type="text" style="width: 180px;" class="inline-input">
+                                <label style="margin-left: 20px;">Data de Expedição:</label>
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                                <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+                                <label style="margin-left: 20px;">Estado:</label>
+                                <input type="text" style="width: 80px;" class="inline-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nome da Mãe:</label>
+                                <input type="text" style="width: 100%;">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Órgão Expedidor:</label>
+                                <input type="text" style="width: 200px;" class="inline-input">
+                                <label style="margin-left: 20px;">Profissão:</label>
+                                <input type="text" style="width: 250px;" class="inline-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label style="font-weight: bold;">ACOMODAÇÃO:</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="acomodacao-dep-1"> ENFERMARIA</label>
+                                    <label><input type="radio" name="acomodacao-dep-1"> APARTAMENTO</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dependente 2 -->
+                        <div style="margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+                            <p style="font-weight: bold; margin-bottom: 15px;">Nome Completo do Dependente:</p>
+                            <input type="text" style="width: 100%; margin-bottom: 15px;">
+
+                            <div class="form-group">
+                                <label>Parentesco:</label>
+                                <input type="text" style="width: 200px;" class="inline-input">
+                                <label style="margin-left: 20px;">Sexo:</label>
+                                <input type="text" style="width: 120px;" class="inline-input">
+                                <label style="margin-left: 20px;">Data de Nascimento:</label>
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                                <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+                            </div>
+
+                            <div class="form-group">
+                                <label>RG:</label>
+                                <input type="text" style="width: 180px;" class="inline-input">
+                                <label style="margin-left: 20px;">Data de Expedição:</label>
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                                <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+                                <label style="margin-left: 20px;">Estado:</label>
+                                <input type="text" style="width: 80px;" class="inline-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nome da Mãe:</label>
+                                <input type="text" style="width: 100%;">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Órgão Expedidor:</label>
+                                <input type="text" style="width: 200px;" class="inline-input">
+                                <label style="margin-left: 20px;">Profissão:</label>
+                                <input type="text" style="width: 250px;" class="inline-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label style="font-weight: bold;">ACOMODAÇÃO:</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="acomodacao-dep-2"> ENFERMARIA</label>
+                                    <label><input type="radio" name="acomodacao-dep-2"> APARTAMENTO</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dependente 3 -->
+                        <div style="margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+                            <p style="font-weight: bold; margin-bottom: 15px;">Nome Completo do Dependente:</p>
+                            <input type="text" style="width: 100%; margin-bottom: 15px;">
+
+                            <div class="form-group">
+                                <label>Parentesco:</label>
+                                <input type="text" style="width: 200px;" class="inline-input">
+                                <label style="margin-left: 20px;">Sexo:</label>
+                                <input type="text" style="width: 120px;" class="inline-input">
+                                <label style="margin-left: 20px;">Data de Nascimento:</label>
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                                <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+                            </div>
+
+                            <div class="form-group">
+                                <label>RG:</label>
+                                <input type="text" style="width: 180px;" class="inline-input">
+                                <label style="margin-left: 20px;">Data de Expedição:</label>
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                                <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+                                <label style="margin-left: 20px;">Estado:</label>
+                                <input type="text" style="width: 80px;" class="inline-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nome da Mãe:</label>
+                                <input type="text" style="width: 100%;">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Órgão Expedidor:</label>
+                                <input type="text" style="width: 200px;" class="inline-input">
+                                <label style="margin-left: 20px;">Profissão:</label>
+                                <input type="text" style="width: 250px;" class="inline-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label style="font-weight: bold;">ACOMODAÇÃO:</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="acomodacao-dep-3"> ENFERMARIA</label>
+                                    <label><input type="radio" name="acomodacao-dep-3"> APARTAMENTO</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dependente 4 -->
+                        <div style="margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+                            <p style="font-weight: bold; margin-bottom: 15px;">Nome Completo do Dependente:</p>
+                            <input type="text" style="width: 100%; margin-bottom: 15px;">
+
+                            <div class="form-group">
+                                <label>Parentesco:</label>
+                                <input type="text" style="width: 200px;" class="inline-input">
+                                <label style="margin-left: 20px;">Sexo:</label>
+                                <input type="text" style="width: 120px;" class="inline-input">
+                                <label style="margin-left: 20px;">Data de Nascimento:</label>
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                                <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+                            </div>
+
+                            <div class="form-group">
+                                <label>RG:</label>
+                                <input type="text" style="width: 180px;" class="inline-input">
+                                <label style="margin-left: 20px;">Data de Expedição:</label>
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                                <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+                                <label style="margin-left: 20px;">Estado:</label>
+                                <input type="text" style="width: 80px;" class="inline-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nome da Mãe:</label>
+                                <input type="text" style="width: 100%;">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Órgão Expedidor:</label>
+                                <input type="text" style="width: 200px;" class="inline-input">
+                                <label style="margin-left: 20px;">Profissão:</label>
+                                <input type="text" style="width: 250px;" class="inline-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label style="font-weight: bold;">ACOMODAÇÃO:</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="acomodacao-dep-4"> ENFERMARIA</label>
+                                    <label><input type="radio" name="acomodacao-dep-4"> APARTAMENTO</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dependente 5 -->
+                        <div style="margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+                            <p style="font-weight: bold; margin-bottom: 15px;">Nome Completo do Dependente:</p>
+                            <input type="text" style="width: 100%; margin-bottom: 15px;">
+
+                            <div class="form-group">
+                                <label>Parentesco:</label>
+                                <input type="text" style="width: 200px;" class="inline-input">
+                                <label style="margin-left: 20px;">Sexo:</label>
+                                <input type="text" style="width: 120px;" class="inline-input">
+                                <label style="margin-left: 20px;">Data de Nascimento:</label>
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                                <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+                            </div>
+
+                            <div class="form-group">
+                                <label>RG:</label>
+                                <input type="text" style="width: 180px;" class="inline-input">
+                                <label style="margin-left: 20px;">Data de Expedição:</label>
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="DD"> /
+                                <input type="text" size="4" maxlength="2" class="inline-input" placeholder="MM"> /
+                                <input type="text" size="6" maxlength="4" class="inline-input" placeholder="AAAA">
+                                <label style="margin-left: 20px;">Estado:</label>
+                                <input type="text" style="width: 80px;" class="inline-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nome da Mãe:</label>
+                                <input type="text" style="width: 100%;">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Órgão Expedidor:</label>
+                                <input type="text" style="width: 200px;" class="inline-input">
+                                <label style="margin-left: 20px;">Profissão:</label>
+                                <input type="text" style="width: 250px;" class="inline-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label style="font-weight: bold;">ACOMODAÇÃO:</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="acomodacao-dep-5"> ENFERMARIA</label>
+                                    <label><input type="radio" name="acomodacao-dep-5"> APARTAMENTO</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+
+                <!-- 4. Inclusão de Dependente -->
+                <div class="formulario" id="inclusao-dependente">
+                    <h2>AOS ILUSTRÍSSIMOS DIRETORES DO FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO DO PARANÁ</h2>
+                    <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome completo do titular:</label>
+                        <input type="text" placeholder="Nome completo do titular" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-mail do titular:</label>
+                        <input type="email" placeholder="seu@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Telefone:</label>
+                        <input type="text" placeholder="(00) 00000-0000">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Matrícula no Funsep:</label>
+                        <input type="text" style="width: 200px;">
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        Abaixo-assinado(a), matrículado(a) nesse Fundo, vem, respeitosamente, <strong>REQUERER</strong> a <strong>inclusão</strong> de 
+                        <input type="text" class="inline-input" placeholder="nome do dependente" style="width: 350px;">, 
+                        com CPF <input type="text" class="inline-input" placeholder="000.000.000-00" style="width: 150px;">,
+                        nome da mãe <input type="text" class="inline-input" placeholder="nome da mãe" style="width: 300px;">,
+                        como seu dependente, conforme comprova os documentos em anexo.
+                    </p>
+
+                    <p style="margin: 20px 0;">
+                        Declaro, outrossim estar ciente das disposições constantes do regulamento do FUNSEP, notadamente em relação aos prazos de carência.
+                    </p>
+
+                    <div class="form-group">
+                        <label>Tipo de acomodação:</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="acomodacao-inc-dep"> Apartamento</label>
+                            <label><input type="radio" name="acomodacao-inc-dep"> Enfermaria</label>
+                        </div>
+                    </div>
+
+                    <div style="margin: 40px 0;">
+                        <p><strong>Nestes Termos,</strong></p>
+                        <p><strong>Pede deferimento.</strong></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data:</label>
+                        Em <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD">
+                        de <input type="text" class="inline-input" size="20" placeholder="mês">
+                        de <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">Associado</div>
+
+                    <div class="alert">
+                        <strong>ATENÇÃO: TODOS OS CAMPOS DEVEM SER PREENCHIDOS, PARA ANDAMENTO DA SOLICITAÇÃO.</strong>
+                    </div>
+
+                    <div class="info-box">
+                        <strong>Obs:</strong>
+                        <p>1. Não haverá em hipótese alguma devolução de valores pagos a título de mensalidade, nem de taxa de inscrição.</p>
+                        <p>2. Será cobrada na primeira mensalidade uma taxa de inscrição de R$ 30,00 (trinta reais) por pessoa.</p>
+                        <p>3. Para que seja efetuada a inscrição é necessário possuir margem consignável junto ao Departamento Econômico e Financeiro do TJ.</p>
+                    </div>
+
+                    <div style="margin-top: 40px; page-break-before: always;">
+                        <p class="section-title">Anexo I</p>
+                        <hr style="margin-bottom: 20px;">
+                        
+                        <div class="info-box">
+                            <p><strong>Prazos de carência (conforme Instrução Normativa nº 1/99)</strong></p>
+                            
+                            <p style="margin-top: 15px;"><strong>- Consultas e exames de patologia clínica</strong> - 30 dias após o primeiro desconto (primeiro dia do mês seguinte).</p>
+                            
+                            <p style="margin-top: 10px;"><strong>- Exames de diagnóstico e terapia, endoscopia diagnóstica em regime ambulatorial, exames radiológicos simples, histocitopatologia, exames e testes alergológicos, oftalmológicos, otorrinolaringológicos (exceto videolaringoestroboscopia), inaloterapia, provas de função pulmonar, teste ergométrico, procedimentos de reabilitação e fisioterapia</strong> - a partir do primeiro dia do terceiro mês seguinte ao pagamento da primeira mensalidade.</p>
+                            
+                            <p style="margin-top: 10px;"><strong>- Internamentos clínicos e cirúrgicos, procedimentos cirúrgicos em regime ambulatorial, quimioterapia, radioterapia, hemodiálise e diálise peritoneal, litotripsia, videolaringoscipia cirúrgica, exames e procedimentos especiais (angiografia, arteriografia, eletroencefalograma prolongado, mapeamento cerebral e polissonagrafia, ultrassonografia, tomografia computadorizada, ressonância nuclear magnética, medicina nuclear, densitometria óssea, videolaparoscopia diagnóstica e radiologia intervencionista)</strong> - a partir do primeiro dia do sexto mês seguinte ao pagamento da primeira mensalidade.</p>
+                            
+                            <p style="margin-top: 10px;"><strong>- Parto a termo</strong> - a partir do primeiro dia do décimo mês seguinte ao pagamento da primeira mensalidade.</p>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 40px;">
+                        <p class="section-title">Anexo II</p>
+                        <hr style="margin-bottom: 20px;">
+                        
+                        <div class="info-box">
+                            <p><strong>Documentos necessários:</strong></p>
+                            
+                            <p style="margin-top: 10px;">· <strong>RG e CPF (cópia autenticada)</strong> - em caso de inclusão de crianças, caso não possua RG, pode-se substituir pela Certidão de Nascimento (2ª via);</p>
+                            
+                            <p style="margin-top: 10px;">· <strong>Certidão de Casamento (2ª via datada de até 180 dias)</strong>, ou <strong>Escritura Pública de União Estável (2ª via datada de até 180 dias)</strong> - quando a inclusão for de companheiro(a);</p>
+                            
+                            <p style="margin-top: 10px;">· <strong>Comprovante de endereço atualizado;</strong></p>
+                            
+                            <p style="margin-top: 10px;">· <strong>Contracheque.</strong></p>
+                            
+                            <p style="margin-top: 15px;"><strong>OBS: Os documentos deverão ser enviados através dos Correios.</strong></p>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+
+                <!-- 5. Inclusão de Recém-Nascido -->
+                <div class="formulario" id="inclusao-recem-nascido">
+                    <h2>AO ILMO. SR. DIRETOR DO FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO</h2>
+                    <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome completo do titular:</label>
+                        <input type="text" placeholder="Nome completo do titular" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-mail:</label>
+                        <input type="email" placeholder="seu@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Matrícula no Funsep:</label>
+                        <input type="text" style="width: 200px;">
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        Abaixo-assinado(a), matriculado(a) nesse Fundo de Saúde, vem, respeitosamente, requerer a inclusão de 
+                        <input type="text" class="inline-input" placeholder="nome do recém-nascido" style="width: 350px;">,
+                        como seu(sua) dependente, conforme atestam os documentos em anexo.
+                    </p>
+
+                    <div class="form-group">
+                        <label>Tipo de acomodação:</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="acomodacao-recem"> Apartamento</label>
+                            <label><input type="radio" name="acomodacao-recem"> Enfermaria</label>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <strong>Obs.:</strong> o(a) requerente declara ter ciência de que o prazo para a inscrição, no caso de que trata este pedido, é de 30 (trinta) dias contados da data do nascimento do(a) descendente, após o que vigorarão os prazos de carência previstos em contrato e no Regulamento do Funsep.
+                    </div>
+
+                    <div style="margin: 40px 0;">
+                        <p><strong>Nestes Termos,</strong></p>
+                        <p><strong>Pede deferimento.</strong></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Curitiba,</label>
+                        <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD"> /
+                        <input type="text" class="inline-input" size="4" maxlength="2" placeholder="MM"> /
+                        <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">Associado</div>
+
+                    <div class="alert">
+                        <strong>ATENÇÃO: TODOS OS CAMPOS DEVEM SER PREENCHIDOS, PARA ANDAMENTO DA SOLICITAÇÃO.</strong>
+                    </div>
+
+                    <div class="info-box">
+                        <strong>Documento necessário:</strong>
+                        <p>- Certidão de Nascimento (2ª via)</p>
+                        <p><strong>OBS:</strong> O documento deverá ser enviado através dos Correios.</p>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+
+                <!-- 6. Inscrição de Pensionista -->
+                <div class="formulario" id="inscricao-pensionista">
+                    <h2>AOS ILUSTRÍSSIMOS DIRETORES DO FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO DO PARANÁ</h2>
+                    <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome completo:</label>
+                        <input type="text" placeholder="Nome completo" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-mail:</label>
+                        <input type="email" placeholder="seu@email.com">
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        Abaixo assinado(a), vem, respeitosamente, <strong>REQUERER</strong> a sua <strong>inscrição</strong> como pensionista nesse Fundo de Saúde, tendo em vista o falecimento de 
+                        <input type="text" class="inline-input" placeholder="nome do falecido" style="width: 350px;">,
+                        conforme cópia de certidão de óbito em anexo.
+                    </p>
+
+                    <p style="margin: 20px 0;">
+                        Declaro: <strong>a)</strong> que concorda em pagar através boleto bancário os valores correspondentes à mensalidade devida por força da inscrição, definidos em tabela variável por faixa etária e de acordo com o tipo de acomodação escolhido para internamentos - [ ] apartamento ou [ ] enfermaria; e <strong>b)</strong> que tem conhecimento dos prazos de carência estabelecidos na Instrução Normativa nº 1/99.
+                    </p>
+
+                    <div style="margin: 40px 0;">
+                        <p><strong>Nestes Termos,</strong></p>
+                        <p><strong>Pede deferimento.</strong></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data:</label>
+                        Em <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD">
+                        de <input type="text" class="inline-input" size="20" placeholder="mês">
+                        de <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">Assinatura</div>
+
+                    <div class="alert">
+                        <strong>ATENÇÃO: TODOS OS CAMPOS DEVEM SER PREENCHIDOS, PARA ANDAMENTO DA SOLICITAÇÃO.</strong>
+                    </div>
+
+                    <div class="info-box">
+                        <strong>Obs:</strong>
+                        <p>1. Não haverá em hipótese alguma devolução de valores pagos a título de mensalidade, nem de taxa de inscrição.</p>
+                        <p>2. Será cobrada na primeira mensalidade uma taxa de inscrição de R$ 30,00 (trinta reais) por pessoa.</p>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+
+                <!-- 7. Requerimento 21 Anos -->
+                <div class="formulario" id="requerimento-21-anos">
+                    <h2>À DIRETORIA DO FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO</h2>
+                    <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome do Beneficiário:</label>
+                        <input type="text">
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-mail:</label>
+                        <input type="email" placeholder="seu@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Matrícula no Funsep:</label>
+                        <input type="text" style="width: 200px;">
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        Abaixo assinado(a), matriculado nesse Fundo, vem respeitosamente, REQUERER a Vs.Sªs, a PERMANÊNCIA do maior de 21 anos:
+                        <input type="text" class="inline-input" placeholder="nome do dependente" style="width: 400px;">,
+                        conforme comprova com os documentos em anexo.
+                    </p>
+
+                    <div style="margin: 30px 0;">
+                        <p class="text-center"><strong>Nestes Termos</strong></p>
+                        <p class="text-center"><strong>P. Deferimento</strong></p>
+                    </div>
+
+                    <p class="section-title">DECLARAÇÃO E TERMO DE COMPROMISSO</p>
+
+                    <p style="margin: 20px 0;">
+                        Declaro, para efeito de inscrição do beneficiário(a) no Fundo de Saúde (FUNSEP), meu dependente 
+                        <input type="text" class="inline-input" placeholder="nome" style="width: 300px;">,
+                        nascido em <input type="text" class="inline-input" size="4" placeholder="DD"> / 
+                        <input type="text" class="inline-input" size="4" placeholder="MM"> / 
+                        <input type="text" class="inline-input" size="4" placeholder="AAAA">,
+                        é solteiro(a), não possui emprego fixo, com remuneração que lhe permita assumir suas despesas pessoais, e vive sob minha dependência econômica, conforme demonstram os documentos em anexo.
+                    </p>
+
+                    <p style="margin: 20px 0;">
+                        ASSUMO, neste ato, o compromisso formal de comunicar à Direção do Fundo toda e qualquer mudança na condição de dependência objeto deste termo, sujeitando-me desde logo, às consequências legais decorrentes de tal obrigação.
+                    </p>
+
+                    <div class="form-group">
+                        <label>Curitiba,</label>
+                        <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD"> /
+                        <input type="text" class="inline-input" size="4" maxlength="2" placeholder="MM"> /
+                        <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">Assinatura - RG nº</div>
+
+                    <div class="alert">
+                        <strong>ATENÇÃO: TODOS OS CAMPOS DEVEM SER PREENCHIDOS, PARA ANDAMENTO DA SOLICITAÇÃO.</strong>
+                    </div>
+
+                    <div class="info-box">
+                        <strong>Documentos necessários:</strong>
+                        <p>· RG e CPF (cópia autenticada) do dependente;</p>
+                        <p>· Cópia da declaração do Imposto de Renda contendo os dependentes;</p>
+                        <p>· Declaração atualizada de matrícula no Ensino Superior regular.</p>
+                        <p><strong>OBS:</strong> Os documentos deverão ser enviados através dos Correios.</p>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+
+                <!-- 8. Requerimento Diversos -->
+                <div class="formulario" id="requerimento-diversos">
+                    <h2>AOS ILUSTRÍSSIMOS DIRETORES DO FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO DO PARANÁ</h2>
+                    <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome completo:</label>
+                        <input type="text" placeholder="Nome completo" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-mail:</label>
+                        <input type="email" placeholder="seu@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Matrícula no Funsep:</label>
+                        <input type="text" style="width: 200px;">
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        Abaixo assinado, nesse Fundo de Saúde, vem respeitosamente requerer a Vs.Sªs:
+                    </p>
+
+                    <div class="form-group">
+                        <label>Descreva o requerimento:</label>
+                        <textarea rows="7" placeholder="Descreva aqui o que você está solicitando..."></textarea>
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        Conforme comprova com os documentos em anexo.
+                    </p>
+
+                    <div style="margin: 40px 0;">
+                        <p><strong>Nestes Termos,</strong></p>
+                        <p><strong>Pede deferimento.</strong></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Curitiba,</label>
+                        <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD"> /
+                        <input type="text" class="inline-input" size="4" maxlength="2" placeholder="MM"> /
+                        <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">Assinatura</div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+
+                <!-- 10. Requerimento Reembolso -->
+                <div class="formulario" id="requerimento-reembolso">
+                    <h2>REQUERIMENTO PARA REEMBOLSO</h2>
+                    
+                                        <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="section-title">DADOS DO BENEFICIÁRIO TITULAR DO PLANO</p>
+
+                    <div class="form-group">
+                        <label>Nome completo:</label>
+                        <input type="text">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nº Cartão Unimed:</label>
+                        <input type="text" style="width: 200px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-mail contato:</label>
+                        <input type="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Telefones para contato:</label>
+                        <input type="text" style="width: 250px;">
+                    </div>
+
+                    <p class="section-title">DADOS DO BENEFICIÁRIO QUE REALIZOU O EVENTO</p>
+
+                    <div class="form-group">
+                        <label>Nome completo:</label>
+                        <input type="text">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nº Cartão Unimed:</label>
+                        <input type="text" style="width: 200px;">
+                    </div>
+
+                    <p class="section-title">MOTIVO DA SOLICITAÇÃO DE REEMBOLSO</p>
+
+                    <div class="checkbox-group">
+                        <label><input type="checkbox"> Falta de rede credenciada</label>
+                        <label><input type="checkbox"> Médico/Prestador não credenciado</label>
+                    </div>
+
+                    <div class="checkbox-group" style="margin-top: 10px;">
+                        <label><input type="checkbox"> Urgência/Emergência</label>
+                        <label><input type="checkbox"> Outros: <input type="text" class="inline-input" style="width: 200px;"></label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Registrou protocolo de informação?</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="protocolo-reemb"> Não</label>
+                            <label><input type="radio" name="protocolo-reemb"> Sim <input type="text" class="inline-input" placeholder="Nº do protocolo" style="width: 150px;"></label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Valor Solicitado: R$</label>
+                        <input type="text" style="width: 200px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Descrever o motivo da solicitação de reembolso:</label>
+                        <textarea rows="4"></textarea>
+                    </div>
+
+                    <p class="section-title">DADOS BANCÁRIOS</p>
+
+                    <div class="info-box">
+                        <p><strong>Observações:</strong> Nota fiscal deve possuir CNPJ e recibo deve possuir CPF do prestador. Informar a conta corrente do titular. Não é possível conta salário. As informações preenchidas abaixo são de inteira responsabilidade de quem o assina.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome do titular da conta:</label>
+                        <input type="text">
+                    </div>
+
+                    <div class="form-group">
+                        <label>CPF/CNPJ do titular da conta:</label>
+                        <input type="text" style="width: 200px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome do Banco:</label>
+                        <input type="text">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Agência (sem o dígito):</label>
+                        <input type="text" style="width: 150px;" class="inline-input">
+                        <label style="margin-left: 20px;">Número da Conta (com o dígito):</label>
+                        <input type="text" style="width: 200px;" class="inline-input">
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label><input type="checkbox"> Conta Corrente</label>
+                        <label><input type="checkbox"> Poupança</label>
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        <strong>*Declaro que as informações prestadas por mim nesse requerimento são verdadeiras e completas.</strong>
+                    </p>
+
+                    <div class="form-group">
+                        <label>Data:</label>
+                        Em <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD">
+                        de <input type="text" class="inline-input" size="20" placeholder="mês">
+                        de <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">Associado</div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+
+                <!-- 11. Termo de Ciência -->
+                <div class="formulario" id="termo-ciencia">
+                    <h2>TERMO DE CIÊNCIA</h2>
+                    
+                    <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p style="margin: 20px 0;">
+                        EU, <input type="text" class="inline-input" placeholder="Nome completo" style="width: 400px;">,
+                        E-MAIL <input type="email" class="inline-input" placeholder="email" style="width: 250px;">,
+                        PORTADOR DO RG Nº <input type="text" class="inline-input" placeholder="0.000.000-0" style="width: 120px;">
+                        E INSCRITO NO CPF SOB Nº <input type="text" class="inline-input" placeholder="000.000.000-00" style="width: 140px;">,
+                        ASSOCIADO DESTE FUNSEP- FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO – CNPJ 77.750.354/0001-88,
+                        ESTOU CIENTE QUE O PLANO DE SAÚDE QUE ADQUIRI JUNTO A ESTE FUNDO, É DE CUSTO OPERACIONAL,
+                        POSSIBILITANDO A UTILIZAÇÃO DA UNIMED-CURITIBA – PLANO DE COBERTURA NACIONAL,
+                        ATRAVÉS DE SUA REDE DE SERVIÇOS CREDENCIADOS PODENDO REALIZAR CONSULTAS, EXAMES,
+                        PROCEDIMENTOS, TRATAMENTO CLÍNICO, CIRÚRGICO OU PSIQUIÁTRICO.
+                    </p>
+
+                    <p style="margin: 20px 0;">
+                        DECLARO TER CONHECIMENTO QUE O REFERIDO CONTRATO ESTABELECIDO ENTRE AS PARTES ACIMA NOMINADAS,
+                        TORNA O FUNSEP O ÚNICO RESPONSÁVEL PELAS DESPESAS EFETUADAS POR SEUS ASSOCIADOS E EM CASO DE AÇÕES JUDICIAIS,
+                        O FUNDO É QUE ARCARÁ COM O ÔNUS QUE TAL SITUAÇÃO VENHA A REPRESENTAR.
+                    </p>
+
+                    <p style="margin: 20px 0;">
+                        EM RELAÇÃO AS NORMAS QUE DISCIPLINAM A UTILIZAÇÃO, DECLARO QUE ESTOU CIENTE, NOTADAMENTE DAS SEGUINTES:
+                    </p>
+
+                    <div class="info-box">
+                        <p><strong>- CONSULTAS –</strong> LIMITADAS A 2 (DUAS) CONSULTAS MÊS, POR INDIVIDUO INSCRITO, COM PARTICIPAÇÃO DE 25% E A PARTIR DA 3ª, DESCONTO DE 100% DO VALOR DE TABELA DA CONSULTA;</p>
+                        <p><strong>- EXAMES E PROCEDIMENTOS –</strong> COM PARTICIPAÇÃO DE 25% DOS VALORES DE TABELA, INCLUSIVE QUANDO NO INTERNAMENTO HOSPITALAR.</p>
+                        <p><strong>- FISIOTERAPIA –</strong> LIMITADOS A 10 SESSÕES NO MÊS, COM 25% DE PARTCIPAÇÃO (INCLUSIVE NO INTERNAMENTO HOSPITALAR).</p>
+                        <p><strong>- FONOAUDIOLOGIA –</strong> LIMITADOS A 4 SESSÕES NO MÊS COM 25% DE PARTICIPAÇÃO (INCLUSIVE NO INTERNAMENTO HOSPITALAR).</p>
+                        <p><strong>- ACUPUNTURA –</strong> LIMITADA A 4 SESSÕES NO MÊS COM 25% DE PARTICIPAÇÃO.</p>
+                        <p><strong>- EXAMES DE ALTO CUSTO –</strong> PARTICIPAÇÃO DE 25% DOS VALORES DE TABELA, INCLUSIVE QUANDO NO INTERNAMENTO HOSPITALAR.</p>
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        DECLARO FINALMENTE, QUE RECEBI A INSTRUÇÃO NORMATIVA Nº 1/99 QUE TRATA DO PRAZO CARENCIAL E O MATERIAL SOBRE O FUNSEP, COM AS INFORMAÇÕES SOBRE A FORMA DE FUNCIONAMENTO.
+                    </p>
+
+                    <div class="form-group">
+                        <label>Data:</label>
+                        Em <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD"> /
+                        <input type="text" class="inline-input" size="4" maxlength="2" placeholder="MM"> /
+                        <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">RG Nº</div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+
+                <!-- 12. Termo de Opção -->
+                <div class="formulario" id="termo-opcoes">
+                    <h2>TERMO DE OPÇÃO CONVÊNIO FUNSEP/UNIMED-CURITIBA</h2>
+                    <div class="deferimento-space">
+                        <div class="titulo-deferimento">DECISÃO</div>
+                        <div class="deferimento-content">
+                            <div class="deferimento-opcoes">
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    DEFERIDO
+                                </div>
+                                <div class="deferimento-opcao">
+                                    <span class="deferimento-checkbox"></span>
+                                    INDEFERIDO
+                                </div>
+                            </div>
+                            <div class="deferimento-data">
+                                <label>Data:</label>
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="4" maxlength="2" placeholder="" class="inline-input"> /
+                                <input type="text" size="6" maxlength="4" placeholder="" class="inline-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Eu,</label>
+                        <input type="text" class="inline-input" placeholder="Nome completo" style="width: 400px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Matrícula Funsep:</label>
+                        <input type="text" style="width: 200px;" class="inline-input">
+                        <label style="margin-left: 20px;">RG:</label>
+                        <input type="text" style="width: 150px;" class="inline-input">
+                        <label style="margin-left: 20px;">CPF:</label>
+                        <input type="text" style="width: 170px;" class="inline-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-mail:</label>
+                        <input type="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Telefone:</label>
+                        <input type="text" style="width: 200px;">
+                    </div>
+
+                    <p style="margin: 20px 0;">
+                        DECLARO estar ciente das normas que disciplinam a instituição assistencial e o funcionamento do convênio estabelecido entre o Funsep e a Unimed-Curitiba, OPTANDO pelo tipo de acomodação e faixa etária dos beneficiários, e CONCORDANDO em pagar os valores mensais das respectivas tabelas.
+                    </p>
+
+                    <p class="section-title">TÍTULAR:</p>
+
+                    <div class="checkbox-group">
+                        <label><input type="checkbox"> Apartamento</label>
+                        <label><input type="checkbox"> Enfermaria</label>
+                    </div>
+
+                    <p class="section-title">DEPENDENTE 1:</p>
+
+                    <div class="form-group">
+                        <input type="text" placeholder="Nome completo do dependente 1">
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label><input type="checkbox"> Apartamento</label>
+                        <label><input type="checkbox"> Enfermaria</label>
+                    </div>
+
+                    <p class="section-title">DEPENDENTE 2:</p>
+
+                    <div class="form-group">
+                        <input type="text" placeholder="Nome completo do dependente 2">
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label><input type="checkbox"> Apartamento</label>
+                        <label><input type="checkbox"> Enfermaria</label>
+                    </div>
+
+                    <p class="section-title">DEPENDENTE 3:</p>
+
+                    <div class="form-group">
+                        <input type="text" placeholder="Nome completo do dependente 3">
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label><input type="checkbox"> Apartamento</label>
+                        <label><input type="checkbox"> Enfermaria</label>
+                    </div>
+
+                    <p class="section-title">DEPENDENTE 4:</p>
+
+                    <div class="form-group">
+                        <input type="text" placeholder="Nome completo do dependente 4">
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label><input type="checkbox"> Apartamento</label>
+                        <label><input type="checkbox"> Enfermaria</label>
+                    </div>
+
+                    <p class="section-title">DEPENDENTE 5:</p>
+
+                    <div class="form-group">
+                        <input type="text" placeholder="Nome completo do dependente 5">
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label><input type="checkbox"> Apartamento</label>
+                        <label><input type="checkbox"> Enfermaria</label>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 30px;">
+                        <label>Data:</label>
+                        Em <input type="text" class="inline-input" size="4" maxlength="2" placeholder="DD"> /
+                        <input type="text" class="inline-input" size="20" placeholder="mês"> /
+                        <input type="text" class="inline-input" size="6" maxlength="4" placeholder="AAAA">
+                    </div>
+
+                    <div class="signature-line">Titular</div>
+
+                    <div class="alert">
+                        <strong>ATENÇÃO: TODOS OS CAMPOS DEVEM SER PREENCHIDOS, PARA ANDAMENTO DA SOLICITAÇÃO.</strong>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Sistema de navegação entre formulários
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', function() {
+                // Remove classe active de todos os itens
+                document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.formulario').forEach(f => f.classList.remove('active'));
+                
+                // Adiciona classe active no item clicado
+                this.classList.add('active');
+                
+                // Mostra o formulário correspondente
+                const formId = this.getAttribute('data-form');
+                document.getElementById(formId).classList.add('active');
+                
+                // Scroll para o topo
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+    </script>
+</body>
+</html>
