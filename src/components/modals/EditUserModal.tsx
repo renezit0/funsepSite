@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useFeedback } from "@/contexts/FeedbackContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface User {
@@ -47,6 +47,7 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
     status: "ATIVO"
   });
   const [loading, setLoading] = useState(false);
+  const { mostrarToast, mostrarFeedback } = useFeedback();
   
   const isDeveloper = session?.user?.cargo === 'DESENVOLVEDOR';
   const canManageUsers = session?.user?.cargo && 
@@ -87,12 +88,12 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
 
       if (error) throw error;
 
-      toast.success('Usuário atualizado com sucesso!');
+      mostrarToast('sucesso', 'Usuário atualizado com sucesso!');
       onUserUpdated();
       onOpenChange(false);
     } catch (error) {
       console.error('Erro ao atualizar usuário:', error);
-      toast.error('Erro ao atualizar usuário');
+      mostrarFeedback('erro', 'Erro', 'Erro ao atualizar usuário');
     } finally {
       setLoading(false);
     }

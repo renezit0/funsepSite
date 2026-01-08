@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useFeedback } from "@/contexts/FeedbackContext";
 
 interface AddUserModalProps {
   open: boolean;
@@ -35,12 +35,13 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
     cpf: "",
   });
   const [loading, setLoading] = useState(false);
+  const { mostrarToast, mostrarFeedback } = useFeedback();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.sigla || !formData.nome || !formData.senha) {
-      toast.error('Sigla, nome e senha são obrigatórios');
+      mostrarFeedback('erro', 'Erro', 'Sigla, nome e senha são obrigatórios');
       return;
     }
 
@@ -61,14 +62,14 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
 
       if (error) {
         if (error.code === '23505') {
-          toast.error('Já existe um usuário com esta sigla');
+          mostrarFeedback('erro', 'Erro', 'Já existe um usuário com esta sigla');
         } else {
           throw error;
         }
         return;
       }
 
-      toast.success('Usuário cadastrado com sucesso!');
+      mostrarToast('sucesso', 'Usuário cadastrado com sucesso!');
       setFormData({
         sigla: "",
         nome: "",
@@ -81,7 +82,7 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
       onOpenChange(false);
     } catch (error) {
       console.error('Erro ao cadastrar usuário:', error);
-      toast.error('Erro ao cadastrar usuário');
+      mostrarFeedback('erro', 'Erro', 'Erro ao cadastrar usuário');
     } finally {
       setLoading(false);
     }
