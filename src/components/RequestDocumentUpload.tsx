@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Upload, X, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useFeedback } from "@/contexts/FeedbackContext";
 
 interface DocumentUploadProps {
   label: string;
@@ -22,30 +22,20 @@ export function RequestDocumentUpload({
   requestType 
 }: DocumentUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const { toast } = useToast();
+  const { mostrarToast, mostrarFeedback } = useFeedback();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tamanho (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Arquivo muito grande. Tamanho máximo: 10MB",
-      });
+      mostrarFeedback('erro', 'Erro', 'Arquivo muito grande. Tamanho máximo: 10MB');
       return;
     }
 
-    // Validar tipo de arquivo
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Tipo de arquivo não permitido. Use apenas JPG, PNG ou PDF.",
-      });
+      mostrarFeedback('erro', 'Erro', 'Tipo de arquivo não permitido. Use apenas JPG, PNG ou PDF.');
       return;
     }
 
@@ -64,17 +54,10 @@ export function RequestDocumentUpload({
 
       onUpload(data.publicUrl, file.name);
 
-      toast({
-        title: "Sucesso",
-        description: "Documento enviado com sucesso!",
-      });
+      mostrarToast('sucesso', 'Documento enviado com sucesso!');
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível enviar o documento. Tente novamente.",
-      });
+      mostrarFeedback('erro', 'Erro', 'Não foi possível enviar o documento. Tente novamente.');
     } finally {
       setIsUploading(false);
     }

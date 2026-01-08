@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useFeedback } from "@/contexts/FeedbackContext";
 import { FileText, Send, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RequestDocumentUpload } from "@/components/RequestDocumentUpload";
@@ -45,7 +45,7 @@ const requestTypes = [
 export function RequestsPage() {
   const { session } = useAuth();
   const { userData, isLoading: isLoadingUserData } = useUserData();
-  const { toast } = useToast();
+  const { mostrarToast, mostrarFeedback } = useFeedback();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedType, setSelectedType] = useState("");
   const [formData, setFormData] = useState<any>({
@@ -126,29 +126,17 @@ export function RequestsPage() {
     const selectedReqType = requestTypes.find(t => t.value === selectedType);
     
     if (!session && selectedReqType?.requiresLogin) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Você precisa estar logado para enviar este tipo de requerimento.",
-      });
+      mostrarFeedback('erro', 'Erro', 'Você precisa estar logado para enviar este tipo de requerimento.');
       return;
     }
 
     if (!selectedType) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Selecione o tipo de requerimento.",
-      });
+      mostrarFeedback('erro', 'Erro', 'Selecione o tipo de requerimento.');
       return;
     }
 
     if (!formData.telefone || formData.telefone.trim() === "") {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "O telefone para contato é obrigatório.",
-      });
+      mostrarFeedback('erro', 'Erro', 'O telefone para contato é obrigatório.');
       return;
     }
 
@@ -168,10 +156,7 @@ export function RequestsPage() {
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso!",
-        description: "Seu requerimento foi enviado com sucesso.",
-      });
+      mostrarToast('sucesso', 'Seu requerimento foi enviado com sucesso.');
 
       // Reset form
       setSelectedType("");
@@ -184,11 +169,7 @@ export function RequestsPage() {
       });
     } catch (error) {
       console.error("Error submitting request:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível enviar seu requerimento. Tente novamente.",
-      });
+      mostrarFeedback('erro', 'Erro', 'Não foi possível enviar seu requerimento. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { NewsModal } from "@/components/modals/NewsModal";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useFeedback } from "@/contexts/FeedbackContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -28,7 +28,7 @@ export function NewsPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNews, setEditingNews] = useState<Noticia | null>(null);
-  const { toast } = useToast();
+  const { mostrarToast, mostrarFeedback } = useFeedback();
 
   const loadNoticias = async () => {
     try {
@@ -41,11 +41,7 @@ export function NewsPage() {
       setNoticias(data || []);
     } catch (error) {
       console.error('Erro ao carregar notícias:', error);
-      toast({
-        title: "Erro",
-        description: "Falha ao carregar notícias",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', 'Falha ao carregar notícias');
     } finally {
       setLoading(false);
     }
@@ -69,19 +65,12 @@ export function NewsPage() {
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Notícia excluída com sucesso!",
-      });
+      mostrarToast('sucesso', 'Notícia excluída com sucesso!');
 
       loadNoticias();
     } catch (error) {
       console.error('Erro ao excluir notícia:', error);
-      toast({
-        title: "Erro",
-        description: "Falha ao excluir notícia",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', 'Falha ao excluir notícia');
     }
   };
 
@@ -98,19 +87,12 @@ export function NewsPage() {
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: `Notícia ${newPublishedState ? 'publicada' : 'despublicada'} com sucesso!`,
-      });
+      mostrarToast('sucesso', `Notícia ${newPublishedState ? 'publicada' : 'despublicada'} com sucesso!`);
 
       loadNoticias();
     } catch (error) {
       console.error('Erro ao alterar status:', error);
-      toast({
-        title: "Erro",
-        description: "Falha ao alterar status da notícia",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', 'Falha ao alterar status da notícia');
     }
   };
 

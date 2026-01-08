@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useFeedback } from "@/contexts/FeedbackContext";
 import { Loader2 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -34,6 +34,7 @@ export function SobreFunsepModal({
   const [titulo, setTitulo] = useState("");
   const [conteudo, setConteudo] = useState("");
   const [loading, setLoading] = useState(false);
+  const { mostrarToast, mostrarFeedback } = useFeedback();
 
   useEffect(() => {
     if (editingSecao) {
@@ -50,20 +51,19 @@ export function SobreFunsepModal({
     setLoading(true);
 
     if (!editingSecao) {
-      toast.error("Erro: seção não encontrada");
+      mostrarFeedback('erro', 'Erro', 'Seção não encontrada');
       setLoading(false);
       return;
     }
 
-    // Validate input
     if (!titulo.trim()) {
-      toast.error("O título é obrigatório");
+      mostrarFeedback('aviso', 'Atenção', 'O título é obrigatório');
       setLoading(false);
       return;
     }
 
     if (!conteudo.trim() || conteudo === '<p><br></p>') {
-      toast.error("O conteúdo é obrigatório");
+      mostrarFeedback('aviso', 'Atenção', 'O conteúdo é obrigatório');
       setLoading(false);
       return;
     }
@@ -78,10 +78,10 @@ export function SobreFunsepModal({
       .eq("id", editingSecao.id);
 
     if (error) {
-      toast.error("Erro ao atualizar seção");
+      mostrarFeedback('erro', 'Erro', 'Erro ao atualizar seção');
       console.error("Erro:", error);
     } else {
-      toast.success("Seção atualizada com sucesso!");
+      mostrarToast('sucesso', 'Seção atualizada com sucesso!');
       onSuccess();
     }
 

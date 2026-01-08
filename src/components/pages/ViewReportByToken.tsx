@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Download, Eye, FileText, User, Calendar, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useFeedback } from "@/contexts/FeedbackContext";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -34,7 +34,7 @@ export function ViewReportByToken() {
   const [reportInfo, setReportInfo] = useState<ReportInfo | null>(null);
   const [htmlContent, setHtmlContent] = useState("");
   const [filename, setFilename] = useState("");
-  const { toast } = useToast();
+  const { mostrarToast, mostrarFeedback } = useFeedback();
 
   const formatCPF = (cpf: string | number) => {
     const cpfStr = cpf.toString().padStart(11, '0');
@@ -63,11 +63,7 @@ export function ViewReportByToken() {
 
   const viewReport = async () => {
     if (!token.trim()) {
-      toast({
-        title: "Atenção",
-        description: "Por favor, informe o token do relatório",
-        variant: "destructive",
-      });
+      mostrarFeedback('aviso', 'Atenção', 'Por favor, informe o token do relatório');
       return;
     }
 
@@ -104,17 +100,10 @@ export function ViewReportByToken() {
       setFilename(data2.filename);
       setReportInfo(data2.info);
 
-      toast({
-        title: "Sucesso",
-        description: "Relatório carregado com sucesso!",
-      });
+      mostrarToast('sucesso', 'Relatório carregado com sucesso!');
     } catch (error: any) {
       console.error('Erro ao visualizar relatório:', error);
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao carregar relatório. Verifique o token e tente novamente.",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', error.message || 'Erro ao carregar relatório. Verifique o token e tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -181,17 +170,10 @@ export function ViewReportByToken() {
 
       pdf.save(filename);
 
-      toast({
-        title: "Sucesso",
-        description: "PDF baixado com sucesso!",
-      });
+      mostrarToast('sucesso', 'PDF baixado com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao gerar PDF",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', 'Erro ao gerar PDF');
     } finally {
       setLoading(false);
     }

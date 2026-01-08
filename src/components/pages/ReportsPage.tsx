@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Hash, Copy, Check, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useFeedback } from "@/contexts/FeedbackContext";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -27,15 +27,11 @@ export function ReportsPage() {
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
+  const { mostrarToast, mostrarFeedback } = useFeedback();
 
   const generateReport = async () => {
     if (!session?.user?.matricula) {
-      toast({
-        title: "Erro",
-        description: "Você precisa estar logado para gerar relatórios",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', 'Você precisa estar logado para gerar relatórios');
       return;
     }
 
@@ -60,17 +56,10 @@ export function ReportsPage() {
       setGeneratedToken(data.token);
       setTokenModalOpen(true);
 
-      toast({
-        title: "Sucesso",
-        description: "Relatório gerado com sucesso!",
-      });
+      mostrarToast('sucesso', 'Relatório gerado com sucesso!');
     } catch (error: any) {
       console.error('Erro ao gerar relatório:', error);
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao gerar relatório",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', error.message || 'Erro ao gerar relatório');
     } finally {
       setLoading(false);
     }
@@ -137,17 +126,10 @@ export function ReportsPage() {
 
       pdf.save(filename);
 
-      toast({
-        title: "Sucesso",
-        description: "PDF baixado com sucesso!",
-      });
+      mostrarToast('sucesso', 'PDF baixado com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao gerar PDF",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', 'Erro ao gerar PDF');
     } finally {
       setLoading(false);
     }
@@ -158,10 +140,7 @@ export function ReportsPage() {
       navigator.clipboard.writeText(generatedToken);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      toast({
-        title: "Token copiado!",
-        description: "O token foi copiado para a área de transferência",
-      });
+      mostrarToast('sucesso', 'Token copiado para a área de transferência!');
     }
   };
 

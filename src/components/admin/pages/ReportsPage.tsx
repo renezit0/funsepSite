@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useFeedback } from "@/contexts/FeedbackContext";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -66,7 +66,7 @@ export function ReportsPage() {
   const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [validateTokenModalOpen, setValidateTokenModalOpen] = useState(false);
   const [tokenToValidate, setTokenToValidate] = useState("");
-  const { toast } = useToast();
+  const { mostrarToast, mostrarFeedback } = useFeedback();
 
   useEffect(() => {
     loadCompanies();
@@ -84,11 +84,7 @@ export function ReportsPage() {
       setCompanies(data || []);
     } catch (error) {
       console.error('Erro ao carregar empresas:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar lista de empresas",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', 'Erro ao carregar lista de empresas');
     }
   };
 
@@ -119,11 +115,7 @@ export function ReportsPage() {
       setBeneficiaries(data || []);
     } catch (error) {
       console.error('Erro ao buscar beneficiários:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao buscar beneficiários",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', 'Erro ao buscar beneficiários');
     } finally {
       setLoading(false);
     }
@@ -173,11 +165,7 @@ export function ReportsPage() {
     console.log('Função generateReport chamada');
     
     if (!selectedBeneficiary) {
-      toast({
-        title: "Erro",
-        description: "Nenhum beneficiário selecionado",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', 'Nenhum beneficiário selecionado');
       return;
     }
 
@@ -313,14 +301,10 @@ export function ReportsPage() {
 
       pdf.save(filename);
 
-      toast({
-        title: "Relatório gerado com sucesso",
-        description: "O relatório foi baixado automaticamente",
-      });
+      mostrarToast('sucesso', 'Relatório gerado com sucesso!');
 
       setReportModalOpen(false);
       
-      // Abrir modal com o token se disponível
       if (token) {
         setTokenModalOpen(true);
       }
@@ -328,17 +312,9 @@ export function ReportsPage() {
       console.error('Erro completo ao gerar relatório:', error);
 
       if (error.message?.includes('não encontrado')) {
-        toast({
-          title: "Sem dados",
-          description: "Nenhum procedimento encontrado para o período selecionado",
-          variant: "destructive"
-        });
+        mostrarFeedback('aviso', 'Sem dados', 'Nenhum procedimento encontrado para o período selecionado');
       } else {
-        toast({
-          title: "Erro",
-          description: `Erro ao gerar relatório: ${error.message || 'Erro desconhecido'}`,
-          variant: "destructive"
-        });
+        mostrarFeedback('erro', 'Erro', `Erro ao gerar relatório: ${error.message || 'Erro desconhecido'}`);
       }
     } finally {
       setLoading(false);
@@ -717,10 +693,7 @@ export function ReportsPage() {
                   onClick={() => {
                     if (generatedToken) {
                       navigator.clipboard.writeText(generatedToken);
-                      toast({
-                        title: "Copiado!",
-                        description: "Token copiado para a área de transferência",
-                      });
+                      mostrarToast('sucesso', 'Token copiado para a área de transferência!');
                     }
                   }}
                 >
@@ -782,11 +755,7 @@ export function ReportsPage() {
                       setValidateTokenModalOpen(false);
                       setTokenToValidate("");
                     } else {
-                      toast({
-                        title: "Atenção",
-                        description: "Por favor, digite um token válido",
-                        variant: "destructive",
-                      });
+                      mostrarFeedback('aviso', 'Atenção', 'Por favor, digite um token válido');
                     }
                   }}
                   className="w-full sm:w-auto gap-2"

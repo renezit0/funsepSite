@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { X, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useFeedback } from "@/contexts/FeedbackContext";
 import { useAuth } from "@/contexts/AuthContext";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -57,7 +57,7 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const { mostrarToast, mostrarFeedback } = useFeedback();
   const { session } = useAuth();
 
   useEffect(() => {
@@ -116,21 +116,13 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
       if (imageFile) {
         imagemUrl = await uploadImage(imageFile);
         if (!imagemUrl) {
-          toast({
-            title: "Erro",
-            description: "Falha ao fazer upload da imagem",
-            variant: "destructive",
-          });
+          mostrarFeedback('erro', 'Erro', 'Falha ao fazer upload da imagem');
           return;
         }
       }
 
       if (!session?.sigla) {
-        toast({
-          title: "Erro",
-          description: "Sessão administrativa não encontrada",
-          variant: "destructive",
-        });
+        mostrarFeedback('erro', 'Erro', 'Sessão administrativa não encontrada');
         return;
       }
 
@@ -157,20 +149,13 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
         throw result.error;
       }
 
-      toast({
-        title: "Sucesso",
-        description: `Notícia ${editingNews ? 'atualizada' : 'criada'} com sucesso!`,
-      });
+      mostrarToast('sucesso', `Notícia ${editingNews ? 'atualizada' : 'criada'} com sucesso!`);
 
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Erro ao salvar notícia:', error);
-      toast({
-        title: "Erro",
-        description: "Falha ao salvar notícia",
-        variant: "destructive",
-      });
+      mostrarFeedback('erro', 'Erro', 'Falha ao salvar notícia');
     } finally {
       setLoading(false);
     }

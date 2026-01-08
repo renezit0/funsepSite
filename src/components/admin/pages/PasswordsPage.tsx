@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Search, Key, Plus, Edit2, Trash2, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useFeedback } from "@/contexts/FeedbackContext";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,7 @@ export function PasswordsPage() {
     nome: ""
   });
   const { session } = useAuth();
+  const { mostrarToast, mostrarFeedback, mostrarConfirmacao } = useFeedback();
 
   useEffect(() => {
     loadData();
@@ -104,7 +105,7 @@ export function PasswordsPage() {
       
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-      toast.error('Erro ao carregar dados');
+      mostrarFeedback('erro', 'Erro', 'Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
@@ -129,9 +130,8 @@ export function PasswordsPage() {
           .eq('id', editingSenha.id);
 
         if (error) throw error;
-        toast.success('Senha atualizada com sucesso!');
+        mostrarToast('sucesso', 'Senha atualizada com sucesso!');
       } else {
-        // Criar nova senha
         const { error } = await supabase
           .from('senhas')
           .insert({
@@ -143,7 +143,7 @@ export function PasswordsPage() {
           });
 
         if (error) throw error;
-        toast.success('Senha criada com sucesso!');
+        mostrarToast('sucesso', 'Senha criada com sucesso!');
       }
 
       setFormData({ cpf: "", senha: "", matricula: "", nome: "" });
@@ -154,29 +154,29 @@ export function PasswordsPage() {
     } catch (error: any) {
       console.error('Erro ao salvar senha:', error);
       if (error.code === '23505') {
-        toast.error('Já existe uma senha cadastrada para este CPF');
+        mostrarFeedback('erro', 'Erro', 'Já existe uma senha cadastrada para este CPF');
       } else {
-        toast.error('Erro ao salvar senha');
+        mostrarFeedback('erro', 'Erro', 'Erro ao salvar senha');
       }
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta senha?')) return;
+    mostrarConfirmacao('Confirmar exclusão', 'Tem certeza que deseja excluir esta senha?', async () => {
+      try {
+        const { error } = await supabase
+          .from('senhas')
+          .delete()
+          .eq('id', id);
 
-    try {
-      const { error } = await supabase
-        .from('senhas')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      toast.success('Senha excluída com sucesso!');
-      loadData();
-    } catch (error) {
-      console.error('Erro ao excluir senha:', error);
-      toast.error('Erro ao excluir senha');
-    }
+        if (error) throw error;
+        mostrarToast('sucesso', 'Senha excluída com sucesso!');
+        loadData();
+      } catch (error) {
+        console.error('Erro ao excluir senha:', error);
+        mostrarFeedback('erro', 'Erro', 'Erro ao excluir senha');
+      }
+    });
   };
 
   const handleEdit = (senha: Senha) => {

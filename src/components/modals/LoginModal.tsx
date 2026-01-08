@@ -8,13 +8,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { useFeedback } from "@/contexts/FeedbackContext";
 import { adminAuth } from "@/services/adminAuth";
+
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
+
 export function LoginModal({
   isOpen,
   onClose,
@@ -24,13 +26,8 @@ export function LoginModal({
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const {
-    login,
-    session
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { login, session } = useAuth();
+  const { mostrarToast, mostrarFeedback } = useFeedback();
   const navigate = useNavigate();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,20 +36,14 @@ export function LoginModal({
       const cleanCpf = cpf.replace(/\D/g, "");
       const result = await login(cleanCpf, password);
       if (result.success) {
-        // Limpar form
         setCpf("");
         setPassword("");
         
-        toast({
-          title: "Login realizado com sucesso",
-          description: "Bem-vindo ao sistema!"
-        });
+        mostrarToast('sucesso', 'Bem-vindo ao sistema!');
         
         onClose();
         onSuccess?.();
         
-        // Redirecionar admins para /admin
-        // Pegar sessão diretamente do adminAuth
         setTimeout(() => {
           const currentSession = adminAuth.getSession();
           const adminRoles = ['GERENTE', 'DESENVOLVEDOR', 'ANALISTA DE SISTEMAS'];
@@ -62,18 +53,10 @@ export function LoginModal({
           }
         }, 200);
       } else {
-        toast({
-          variant: "destructive",
-          title: "Erro no login",
-          description: result.error || "CPF ou senha inválidos"
-        });
+        mostrarFeedback('erro', 'Erro no login', result.error || 'CPF ou senha inválidos');
       }
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Erro interno do servidor"
-      });
+      mostrarFeedback('erro', 'Erro', 'Erro interno do servidor');
     } finally {
       setIsLoading(false);
     }
