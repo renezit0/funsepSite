@@ -182,8 +182,8 @@ export function NewsPage() {
                       <div className="flex flex-col">
                         <span>{format(new Date(noticia.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
                         {noticia.updated_at && noticia.updated_at !== noticia.created_at && (
-                          <span className="text-xs text-amber-600">
-                            (editado em {format(new Date(noticia.updated_at), "dd/MM/yyyy", { locale: ptBR })})
+                          <span className="text-xs text-muted-foreground/50 italic">
+                            editado
                           </span>
                         )}
                       </div>
