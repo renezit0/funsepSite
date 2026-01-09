@@ -33,7 +33,9 @@ const modules = {
     ['bold', 'italic', 'underline', 'strike'],
     [{ 'list': 'ordered'}, { 'list': 'bullet' }],
     [{ 'align': [] }],
-    ['link'],
+    ['link', 'image'],
+    [{ 'color': [] }, { 'background': [] }],
+    ['blockquote', 'code-block'],
     ['clean']
   ],
 };
@@ -43,7 +45,9 @@ const formats = [
   'bold', 'italic', 'underline', 'strike',
   'list', 'bullet',
   'align',
-  'link'
+  'link', 'image',
+  'color', 'background',
+  'blockquote', 'code-block'
 ];
 
 export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModalProps) {

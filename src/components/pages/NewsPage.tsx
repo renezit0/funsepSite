@@ -89,7 +89,7 @@ export function NewsPage() {
               </Badge>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                {format(new Date(selectedNoticia.data_publicacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                Publicado em {format(new Date(selectedNoticia.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
               </div>
             </div>
             
@@ -98,13 +98,18 @@ export function NewsPage() {
             </h1>
             
             <div 
-              className="prose prose-lg max-w-none dark:prose-invert
+              className="ql-editor prose prose-lg max-w-none dark:prose-invert
                 prose-headings:text-foreground 
                 prose-p:text-foreground/90 
                 prose-a:text-primary 
                 prose-strong:text-foreground
                 prose-ul:text-foreground/90
-                prose-ol:text-foreground/90 mb-6"
+                prose-ol:text-foreground/90
+                [&_table]:w-full [&_table]:border-collapse [&_table]:border [&_table]:border-border
+                [&_td]:border [&_td]:border-border [&_td]:p-2
+                [&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:bg-muted [&_th]:font-semibold
+                [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-4
+                mb-6"
               dangerouslySetInnerHTML={{ __html: selectedNoticia.conteudo }}
             />
             

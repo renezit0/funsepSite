@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { FileText, Plus, Edit2, Trash2, Eye, EyeOff } from "lucide-react";
+import { FileText, Plus, Edit2, Trash2, Eye, EyeOff, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { NewsModal } from "@/components/modals/NewsModal";
+import { NewsPreviewModal } from "@/components/modals/NewsPreviewModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeedback } from "@/contexts/FeedbackContext";
 import { format } from "date-fns";
@@ -15,10 +17,12 @@ interface Noticia {
   id: string;
   titulo: string;
   resumo: string;
+  conteudo: string;
   categoria: string;
   publicado: boolean;
   data_publicacao: string | null;
   created_at: string;
+  updated_at: string;
   autor_sigla: string;
   imagem_url: string | null;
 }
@@ -27,7 +31,9 @@ export function NewsPage() {
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingNews, setEditingNews] = useState<Noticia | null>(null);
+  const [previewNews, setPreviewNews] = useState<Noticia | null>(null);
   const { mostrarToast, mostrarFeedback } = useFeedback();
 
   const loadNoticias = async () => {
@@ -54,6 +60,11 @@ export function NewsPage() {
   const handleEdit = (noticia: Noticia) => {
     setEditingNews(noticia);
     setIsModalOpen(true);
+  };
+
+  const handlePreview = (noticia: Noticia) => {
+    setPreviewNews(noticia);
+    setIsPreviewOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -168,30 +179,64 @@ export function NewsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {format(new Date(noticia.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      <div className="flex flex-col">
+                        <span>{format(new Date(noticia.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+                        {noticia.updated_at && noticia.updated_at !== noticia.created_at && (
+                          <span className="text-xs text-amber-600">
+                            (editado em {format(new Date(noticia.updated_at), "dd/MM/yyyy", { locale: ptBR })})
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>{noticia.autor_sigla}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => togglePublish(noticia)}
-                        >
-                          {noticia.publicado ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(noticia)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handlePreview(noticia)}
+                            >
+                              <Search className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Visualizar</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => togglePublish(noticia)}
+                            >
+                              {noticia.publicado ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{noticia.publicado ? 'Despublicar' : 'Publicar'}</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(noticia)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar</TooltipContent>
+                        </Tooltip>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Excluir</TooltipContent>
+                            </Tooltip>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
@@ -226,6 +271,15 @@ export function NewsPage() {
         }}
         onSuccess={loadNoticias}
         editingNews={editingNews}
+      />
+
+      <NewsPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setPreviewNews(null);
+        }}
+        noticia={previewNews}
       />
     </div>
   );
