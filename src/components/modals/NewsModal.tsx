@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { X, Image as ImageIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { X, Image as ImageIcon, Table } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeedback } from "@/contexts/FeedbackContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,6 +51,23 @@ const formats = [
   'blockquote', 'code-block'
 ];
 
+const generateTableHTML = (rows: number, cols: number) => {
+  let html = '<table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">';
+  for (let i = 0; i < rows; i++) {
+    html += '<tr>';
+    for (let j = 0; j < cols; j++) {
+      if (i === 0) {
+        html += '<th style="border: 1px solid #ddd; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Cabeçalho</th>';
+      } else {
+        html += '<td style="border: 1px solid #ddd; padding: 8px;">Célula</td>';
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</table><p><br></p>';
+  return html;
+};
+
 export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModalProps) {
   const [formData, setFormData] = useState({
     titulo: "",
@@ -61,6 +79,10 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [tableRows, setTableRows] = useState(3);
+  const [tableCols, setTableCols] = useState(3);
+  const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
+  const quillRef = useRef<ReactQuill>(null);
   const { mostrarToast, mostrarFeedback } = useFeedback();
   const { session } = useAuth();
 
@@ -80,6 +102,16 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
     }
     setImageFile(null);
   }, [editingNews, isOpen]);
+
+  const insertTable = () => {
+    const tableHTML = generateTableHTML(tableRows, tableCols);
+    setFormData(prev => ({
+      ...prev,
+      conteudo: prev.conteudo + tableHTML
+    }));
+    setTablePopoverOpen(false);
+    mostrarToast('sucesso', 'Tabela inserida!');
+  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -213,9 +245,52 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
           </div>
 
           <div>
-            <Label htmlFor="conteudo">Conteúdo</Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="conteudo">Conteúdo</Label>
+              <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="gap-2">
+                    <Table className="h-4 w-4" />
+                    Inserir Tabela
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Configurar Tabela</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="rows" className="text-xs">Linhas</Label>
+                        <Input
+                          id="rows"
+                          type="number"
+                          min={2}
+                          max={10}
+                          value={tableRows}
+                          onChange={(e) => setTableRows(Number(e.target.value))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="cols" className="text-xs">Colunas</Label>
+                        <Input
+                          id="cols"
+                          type="number"
+                          min={2}
+                          max={10}
+                          value={tableCols}
+                          onChange={(e) => setTableCols(Number(e.target.value))}
+                        />
+                      </div>
+                    </div>
+                    <Button type="button" onClick={insertTable} className="w-full">
+                      Inserir
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
             <div className="bg-background border rounded-md">
               <ReactQuill
+                ref={quillRef}
                 theme="snow"
                 value={formData.conteudo}
                 onChange={(value) => setFormData(prev => ({ ...prev, conteudo: value }))}
