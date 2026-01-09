@@ -247,14 +247,14 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label htmlFor="conteudo">Conteúdo</Label>
-              <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
+              <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen} modal={true}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" size="sm" className="gap-2">
                     <Table className="h-4 w-4" />
                     Inserir Tabela
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64">
+                <PopoverContent className="w-64 z-[100]" sideOffset={5}>
                   <div className="space-y-4">
                     <h4 className="font-medium">Configurar Tabela</h4>
                     <div className="grid grid-cols-2 gap-4">
