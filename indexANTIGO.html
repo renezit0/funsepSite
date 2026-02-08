@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Funsep - Fundo de Saúde dos Servidores do Poder Judiciário</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Roboto', sans-serif;
+            background: #f8f9fa;
+            overflow-x: hidden;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ================================
+           LAYOUT DESKTOP - SIDEBAR FIXA
+        ================================ */
+        
+        .layout-desktop {
+            display: flex;
+            min-height: 100vh;
+            flex: 1;
+        }
+
+        .sidebar-desktop {
+            width: 260px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .logo-desktop {
+            padding: 20px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #fafafa;
+        }
+
+        .logo-desktop img {
+            width: 100%;
+            max-width: 180px;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px;
+        }
+
+        .logo-text-desktop {
+            font-size: 11px;
+            color: #64748b;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .menu-desktop {
+            flex: 1;
+            padding: 12px 10px;
+        }
+
+        .menu-desktop-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #334155;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+
+        .menu-desktop-item:hover {
+            background: #f8fafc;
+        }
+
+        .menu-desktop-item.active {
+            background: #f1f5f9;
+            color: #0f172a;
+            border-color: #e2e8f0;
+        }
+
+        .menu-desktop-item.active i {
+            color: #2563eb;
+        }
+
+        .menu-desktop-item i {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        /* Submenu de Requerimentos */
+        .menu-desktop-item.has-submenu {
+            justify-content: space-between;
+        }
+
+        .menu-desktop-item .chevron {
+            font-size: 12px;
+            transition: transform 0.3s;
+            color: #94a3b8;
+        }
+
+        .menu-desktop-item.has-submenu.expanded .chevron {
+            transform: rotate(180deg);
+        }
+
+        .submenu-desktop {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            margin-left: 10px;
+            margin-bottom: 4px;
+        }
+
+        .submenu-desktop.expanded {
+            max-height: 800px;
+        }
+
+        .submenu-desktop-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px 10px 36px;
+            margin-bottom: 2px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .submenu-desktop-item:before {
+            content: "";
+            position: absolute;
+            left: 20px;
+            width: 5px;
+            height: 5px;
+            background: #cbd5e1;
+            border-radius: 50%;
+        }
+
+        .submenu-desktop-item:hover {
+            background: #f8fafc;
+            color: #334155;
+        }
+
+        .submenu-desktop-item:hover:before {
+            background: #94a3b8;
+        }
+
+        .submenu-desktop-item.active {
+            background: #eff6ff;
+            color: #2563eb;
+            font-weight: 600;
+        }
+
+        .submenu-desktop-item.active:before {
+            background: #2563eb;
+            width: 6px;
+            height: 6px;
+        }
+
+        .sidebar-footer-desktop {
+            padding: 14px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            background: #fafafa;
+        }
+
+        .sidebar-footer-desktop p {
+            font-size: 10px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .content-desktop {
+            flex: 1;
+            margin-left: 260px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .main-desktop {
+            flex: 1;
+            padding: 20px 24px;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        /* ================================
+           LAYOUT MOBILE
+        ================================ */
+        
+        .layout-mobile {
+            display: none;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header-mobile {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #334155;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-mobile img {
+            height: 36px;
+            width: auto;
+        }
+
+        .sidebar-mobile {
+            position: fixed;
+            left: -100%;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: #ffffff;
+            z-index: 200;
+            transition: left 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-mobile.active {
+            left: 0;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 199;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar-mobile-header {
+            padding: 20px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #fafafa;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-mobile-header img {
+            height: 40px;
+            width: auto;
+        }
+
+        .close-menu {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #334155;
+            padding: 8px;
+        }
+
+        .menu-mobile {
+            flex: 1;
+            padding: 12px 10px;
+        }
+
+        .menu-mobile-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #334155;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .menu-mobile-item:hover {
+            background: #f8fafc;
+        }
+
+        .menu-mobile-item.active {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .menu-mobile-item.active i {
+            color: #2563eb;
+        }
+
+        .menu-mobile-item i {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        .menu-mobile-item.has-submenu {
+            justify-content: space-between;
+        }
+
+        .submenu-mobile {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .submenu-mobile.expanded {
+            max-height: 800px;
+        }
+
+        .submenu-mobile-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px 12px 36px;
+            margin-bottom: 2px;
+            border-radius: 6px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .submenu-mobile-item:before {
+            content: "";
+            position: absolute;
+            left: 20px;
+            width: 5px;
+            height: 5px;
+            background: #cbd5e1;
+            border-radius: 50%;
+        }
+
+        .submenu-mobile-item:hover {
+            background: #f8fafc;
+        }
+
+        .submenu-mobile-item.active {
+            background: #eff6ff;
+            color: #2563eb;
+            font-weight: 600;
+        }
+
+        .submenu-mobile-item.active:before {
+            background: #2563eb;
+        }
+
+        .sidebar-footer-mobile {
+            padding: 14px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            background: #fafafa;
+        }
+
+        .sidebar-footer-mobile p {
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .main-mobile {
+            padding: 16px;
+            flex: 1;
+        }
+
+        /* ================================
+           ESTILOS COMPARTILHADOS
+        ================================ */
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Card para conteúdo dinâmico */
+        .content-card {
+            background: transparent;
+            border-radius: 0;
+            overflow: visible;
+            min-height: 400px;
+        }
+
+        .content-card iframe {
+            width: 100%;
+            height: 100vh;
+            border: none;
+            display: block;
+        }
+
+        /* Seções modernas - Home */
+        .secao-moderna {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .secao-header {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            padding: 12px 16px;
+            border-bottom: 1px solid #bbf7d0;
+        }
+
+        .secao-header h2 {
+            font-size: 15px;
+            color: #166534;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+
+        .secao-header i {
+            color: #16a34a;
+            font-size: 16px;
+        }
+
+        .secao-conteudo {
+            padding: 20px;
+            background: #ffffff;
+        }
+
+        /* Banner reformulando */
+        .banner {
+            background: #eff6ff;
+            color: #1e40af;
+            padding: 9px 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 11px;
+            line-height: 1.5;
+            border: 1px solid #dbeafe;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .banner i {
+            color: #3b82f6;
+            font-size: 14px;
+        }
+
+        .banner a {
+            color: #2563eb;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        /* Aviso importante */
+        .aviso-importante {
+            width: 100%;
+            margin: 0 0 16px 0;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-left: 3px solid #f59e0b;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .aviso-header {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 10px 14px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .aviso-header i {
+            font-size: 14px;
+            color: #f59e0b;
+        }
+
+        .aviso-content {
+            padding: 14px 16px;
+            color: #374151;
+            line-height: 1.6;
+            background: #fff;
+        }
+
+        .aviso-content p {
+            margin: 8px 0;
+            font-size: 11px;
+        }
+
+        .aviso-content strong {
+            color: #1f2937;
+            font-size: 11px;
+        }
+
+        .contatos-aviso {
+            background: #f9fafb;
+            padding: 10px 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .contatos-aviso p {
+            margin: 5px 0;
+            font-size: 10px;
+            color: #4b5563;
+        }
+
+        .contatos-aviso i {
+            color: #2563eb;
+            margin-right: 4px;
+        }
+
+        .aviso-content a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .aviso-content a:hover {
+            text-decoration: underline;
+        }
+
+        /* Notícias container */
+        .noticias-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .noticia-card {
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .noticia-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .noticia-imagem {
+            width: 100%;
+            height: 180px;
+            overflow: hidden;
+            background: #f1f5f9;
+        }
+
+        .noticia-imagem img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .noticia-card:hover .noticia-imagem img {
+            transform: scale(1.05);
+        }
+
+        .noticia-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .noticia-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .noticia-categoria {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .noticia-data {
+            font-size: 11px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .noticia-data i {
+            font-size: 10px;
+        }
+
+        .noticia-titulo {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+            line-height: 1.4;
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .noticia-resumo {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.6;
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .noticia-ler-mais {
+            background: none;
+            border: none;
+            color: #2563eb;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: gap 0.2s ease;
+            width: fit-content;
+        }
+
+        .noticia-ler-mais:hover {
+            gap: 10px;
+        }
+
+        .noticia-ler-mais i {
+            font-size: 10px;
+        }
+
+        .noticias-loading,
+        .noticias-empty,
+        .noticias-error {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .noticias-error {
+            color: #dc2626;
+        }
+
+        /* Detalhes da notícia */
+        .noticia-detalhes {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-voltar {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #334155;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .btn-voltar:hover {
+            background: #e2e8f0;
+        }
+
+        .noticia-detalhes-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .noticia-detalhes-titulo {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.3;
+            margin: 0 0 20px 0;
+        }
+
+        .noticia-detalhes-imagem {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .noticia-detalhes-conteudo {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #475569;
+        }
+
+        .noticia-detalhes-conteudo h1,
+        .noticia-detalhes-conteudo h2,
+        .noticia-detalhes-conteudo h3 {
+            color: #1e293b;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .noticia-detalhes-conteudo h1 {
+            font-size: 24px;
+        }
+
+        .noticia-detalhes-conteudo h2 {
+            font-size: 20px;
+        }
+
+        .noticia-detalhes-conteudo h3 {
+            font-size: 17px;
+        }
+
+        .noticia-detalhes-conteudo ul,
+        .noticia-detalhes-conteudo ol {
+            padding-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        .noticia-detalhes-conteudo li {
+            margin-bottom: 8px;
+        }
+
+        .noticia-detalhes-conteudo a {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+
+        .noticia-detalhes-conteudo img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 16px 0;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Sobre */
+        .sobre-container {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .sobre-imagem {
+            flex: 0 0 auto;
+            width: 100%;
+            max-width: 260px;
+        }
+
+        .imagem-frame {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+            border: 1px solid #e2e8f0;
+        }
+
+        .imagem-frame:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .imagem-frame img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .sobre-texto {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .sobre-texto p {
+            font-size: 13px;
+            line-height: 1.7;
+            color: #475569;
+            margin: 0 0 14px 0;
+            text-align: justify;
+        }
+
+        .sobre-texto p:last-child {
+            margin-bottom: 0;
+        }
+
+        .texto-destaque {
+            font-size: 14px !important;
+            font-weight: 600;
+            color: #16a34a !important;
+            border-left: 3px solid #16a34a;
+            padding-left: 14px;
+            margin-bottom: 18px !important;
+            line-height: 1.6 !important;
+            background: #f0fdf4;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-right: 14px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .sobre-texto strong {
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        .footer {
+            background: transparent;
+            border-top: 1px solid #e2e8f0;
+            padding: 16px 20px;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .footer-content span {
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        .footer-content img {
+            height: 18px;
+            width: auto;
+            opacity: 0.7;
+        }
+
+        .footer-info {
+            color: #cbd5e1;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+
+        /* ================================
+           RESPONSIVIDADE
+        ================================ */
+
+        @media screen and (max-width: 768px) {
+            .layout-desktop {
+                display: none;
+            }
+
+            .layout-mobile {
+                display: flex;
+            }
+
+            .secao-conteudo {
+                padding: 16px;
+            }
+
+            .sobre-container {
+                gap: 18px;
+                flex-direction: column;
+            }
+
+            .sobre-imagem {
+                max-width: 100%;
+            }
+
+            .sobre-texto {
+                min-width: 100%;
+            }
+
+            .sobre-texto p {
+                font-size: 12px;
+            }
+
+            .texto-destaque {
+                font-size: 13px !important;
+            }
+
+            .noticias-container {
+                grid-template-columns: 1fr;
+            }
+
+            .noticia-detalhes {
+                padding: 18px;
+            }
+
+            .noticia-detalhes-titulo {
+                font-size: 22px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .secao-header {
+                padding: 10px 14px;
+            }
+
+            .secao-header h2 {
+                font-size: 14px;
+            }
+
+            .secao-conteudo {
+                padding: 14px;
+            }
+
+            .sobre-texto p {
+                font-size: 11px;
+            }
+
+            .texto-destaque {
+                font-size: 12px !important;
+                padding-left: 12px;
+                padding-top: 8px;
+                padding-bottom: 8px;
+            }
+
+            .noticia-detalhes {
+                padding: 16px;
+            }
+
+            .noticia-detalhes-titulo {
+                font-size: 20px;
+            }
+
+            .noticia-titulo {
+                font-size: 14px;
+            }
+
+            .noticia-resumo {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- LAYOUT DESKTOP -->
+    <div class="layout-desktop">
+        <aside class="sidebar-desktop">
+            <div class="logo-desktop">
+                <img src="images/e548bfa7-21ab-4b35-866a-211b0aaa1135.png" alt="Logo Funsep">
+                <div class="logo-text-desktop">Fundo de Saúde dos Servidores do Poder Judiciário</div>
+            </div>
+
+            <nav class="menu-desktop">
+                <a href="#" class="menu-desktop-item active" data-page="home" data-title="Home">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+
+                <a href="#" class="menu-desktop-item" data-page="noticia.php" data-title="Notícias">
+                    <i class="fas fa-newspaper"></i>
+                    <span>Notícias</span>
+                </a>
+
+                <a href="#" class="menu-desktop-item" data-page="instrucoes_gerais.html" data-title="Instruções">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Instruções</span>
+                </a>
+
+                <a href="/estatutofunsep.pdf" class="menu-desktop-item" target="_blank">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Estatuto</span>
+                </a>
+
+                <div class="menu-desktop-item has-submenu" id="requerimentos-menu-desktop">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Requerimentos</span>
+                    </div>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+
+                <div class="submenu-desktop" id="submenu-requerimentos-desktop">
+                    <div class="submenu-desktop-item" data-requerimento="exclusao-associado">Exclusão de Associado</div>
+                    <div class="submenu-desktop-item" data-requerimento="exclusao-dependente">Exclusão de Dependente</div>
+                    <div class="submenu-desktop-item" data-requerimento="inclusao-associado">Inclusão de Associado</div>
+                    <div class="submenu-desktop-item" data-requerimento="inclusao-dependente">Inclusão de Dependente</div>
+                    <div class="submenu-desktop-item" data-requerimento="inclusao-recem-nascido">Inclusão de Recém-Nascido</div>
+                    <div class="submenu-desktop-item" data-requerimento="inscricao-pensionista">Inscrição de Pensionista</div>
+                    <div class="submenu-desktop-item" data-requerimento="requerimento-21-anos">Requerimento - 21 Anos</div>
+                    <div class="submenu-desktop-item" data-requerimento="requerimento-diversos">Requerimento - Diversos</div>
+                    <div class="submenu-desktop-item" data-requerimento="requerimento-reembolso">Requerimento - Reembolso</div>
+                    <div class="submenu-desktop-item" data-requerimento="termo-ciencia">Termo de Ciência</div>
+                    <div class="submenu-desktop-item" data-requerimento="termo-opcoes">Termo de Opção</div>
+                </div>
+
+                <a href="#" class="menu-desktop-item" data-page="localizacao.html" data-title="Localização">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Localização</span>
+                </a>
+
+                <a href="#" class="menu-desktop-item" data-page="contato.php" data-title="Contato">
+                    <i class="fas fa-envelope"></i>
+                    <span>Contato</span>
+                </a>
+            </nav>
+
+        </aside>
+
+        <div class="content-desktop">
+            <main class="main-desktop">
+                <div id="home-content">
+                    <div class="banner">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Estamos reformulando nosso site. <a href="https://funsep.com.br/se/index.html#/" target="_blank">Experimente a nova versão</a></span>
+                    </div>
+
+                    <!-- AVISO IMPORTANTE COMENTADO TEMPORARIAMENTE
+                    <div class="aviso-importante">
+                        <div class="aviso-header">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            AVISO - ATENDIMENTO NO PERÍODO DE 24/12 a 05/01/2026
+                        </div>
+                        <div class="aviso-content">
+                            <p><strong>DIAS 24 e 31/12/25 - NÃO HAVERÁ ATENDIMENTO PRESENCIAL</strong><br>
+                            (SOMENTE ATRAVÉS DO WHATSAPP – <a href="https://wa.me/5541984547236" target="_blank">41-98454-7236</a> até às 12h)</p>
+
+                            <p><strong>DIAS 26/12/2025 e 02/01/2026 – NÃO HAVERÁ ATENDIMENTO PRESENCIAL</strong><br>
+                            SOMENTE ATRAVÉS DO WHATSAPP E E-MAILS:</p>
+
+                            <div class="contatos-aviso">
+                                <p><i class="fab fa-whatsapp"></i> <strong>WhatsApp:</strong> <a href="https://wa.me/5541984547236" target="_blank">41-98454-7236</a></p>
+                                <p><i class="fas fa-envelope"></i> <strong>E-mails:</strong><br>
+                                <a href="mailto:funsep@unimedcuritiba.com.br">funsep@unimedcuritiba.com.br</a><br>
+                                <a href="mailto:atendimento.funsep@gmail.com">atendimento.funsep@gmail.com</a><br>
+                                <a href="mailto:funsep@funsep.com.br">funsep@funsep.com.br</a><br>
+                                <a href="mailto:financeirofunsep@gmail.com">financeirofunsep@gmail.com</a></p>
+                            </div>
+                        </div>
+                    </div>
+                    -->
+
+                    <div class="secao-moderna">
+                        <div class="secao-header">
+                            <h2>
+                                <i class="fas fa-newspaper"></i>
+                                Notícias FUNSEP
+                            </h2>
+                        </div>
+                        <div class="secao-conteudo">
+                            <div id="noticias-list" class="noticias-container">
+                                <!-- Notícias serão carregadas aqui via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="secao-moderna">
+                        <div class="secao-header">
+                            <h2>
+                                <i class="fas fa-building"></i>
+                                Sobre Nós
+                            </h2>
+                        </div>
+                        <div class="secao-conteudo">
+                            <div class="sobre-container">
+                                <div class="sobre-imagem">
+                                    <div class="imagem-frame">
+                                        <img src="imagens/funsep-atendimento.jpg" alt="FUNSEP Atendimento" />
+                                    </div>
+                                </div>
+                                <div class="sobre-texto">
+                                    <p class="texto-destaque">O Funsep é uma instituição que existe para dar assistência à saúde dos servidores do Poder Judiciário e seus dependentes.</p>
+
+                                    <p>O Fundo foi criado em <strong>1983</strong>, por um decreto da Presidência do Tribunal de Justiça. A sua administração é feita por um Conselho Diretor do qual fazem parte quatro servidores.</p>
+
+                                    <p>Com um quadro próprio de funcionários, o Funsep está instalado no <strong>Centro Cívico</strong>, na rua <strong>Papa João XXIII, 244</strong>.</p>
+
+                                    <p>Desde o dia <strong>1º de março de 2006</strong>, o atendimento está sendo feito pelo sistema <strong>Unimed</strong>, que atinge todo o território do País.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dynamic-content" class="hidden"></div>
+            </main>
+
+            <footer class="footer">
+                <div class="footer-content">
+                    <span>Desenvolvido por</span>
+                    <img src="https://seellbr.com/logoblack.png" alt="seeLL">
+                </div>
+                <div class="footer-info">
+                    <p>© 2026 - Todos os direitos reservados | seeLL & Funsep</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- LAYOUT MOBILE -->
+    <div class="layout-mobile">
+        <header class="header-mobile">
+            <button class="menu-toggle" onclick="toggleMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="logo-mobile">
+                <img src="images/e548bfa7-21ab-4b35-866a-211b0aaa1135.png" alt="Logo Funsep">
+            </div>
+            <div style="width: 40px;"></div>
+        </header>
+
+        <div class="menu-overlay" onclick="toggleMenu()"></div>
+
+        <aside class="sidebar-mobile">
+            <div class="sidebar-mobile-header">
+                <img src="images/e548bfa7-21ab-4b35-866a-211b0aaa1135.png" alt="Logo Funsep">
+                <button class="close-menu" onclick="toggleMenu()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <nav class="menu-mobile">
+                <div class="menu-mobile-item active" data-page="home" data-title="Home">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </div>
+
+                <div class="menu-mobile-item" data-page="noticia.php" data-title="Notícias">
+                    <i class="fas fa-newspaper"></i>
+                    <span>Notícias</span>
+                </div>
+
+                <div class="menu-mobile-item" data-page="instrucoes_gerais.html" data-title="Instruções">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Instruções</span>
+                </div>
+
+                <a href="/estatutofunsep.pdf" class="menu-mobile-item" target="_blank" style="text-decoration: none;">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Estatuto</span>
+                </a>
+
+                <div class="menu-mobile-item has-submenu" id="requerimentos-menu-mobile">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Requerimentos</span>
+                    </div>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+
+                <div class="submenu-mobile" id="submenu-requerimentos-mobile">
+                    <div class="submenu-mobile-item" data-requerimento="exclusao-associado">Exclusão de Associado</div>
+                    <div class="submenu-mobile-item" data-requerimento="exclusao-dependente">Exclusão de Dependente</div>
+                    <div class="submenu-mobile-item" data-requerimento="inclusao-associado">Inclusão de Associado</div>
+                    <div class="submenu-mobile-item" data-requerimento="inclusao-dependente">Inclusão de Dependente</div>
+                    <div class="submenu-mobile-item" data-requerimento="inclusao-recem-nascido">Inclusão de Recém-Nascido</div>
+                    <div class="submenu-mobile-item" data-requerimento="inscricao-pensionista">Inscrição de Pensionista</div>
+                    <div class="submenu-mobile-item" data-requerimento="requerimento-21-anos">Requerimento - 21 Anos</div>
+                    <div class="submenu-mobile-item" data-requerimento="requerimento-diversos">Requerimento - Diversos</div>
+                    <div class="submenu-mobile-item" data-requerimento="requerimento-reembolso">Requerimento - Reembolso</div>
+                    <div class="submenu-mobile-item" data-requerimento="termo-ciencia">Termo de Ciência</div>
+                    <div class="submenu-mobile-item" data-requerimento="termo-opcoes">Termo de Opção</div>
+                </div>
+
+                <div class="menu-mobile-item" data-page="localizacao.html" data-title="Localização">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Localização</span>
+                </div>
+
+                <div class="menu-mobile-item" data-page="contato.php" data-title="Contato">
+                    <i class="fas fa-envelope"></i>
+                    <span>Contato</span>
+                </div>
+            </nav>
+
+        </aside>
+
+        <main class="main-mobile">
+            <div class="banner">
+                <i class="fas fa-info-circle"></i>
+                <span>Estamos reformulando nosso site. <a href="https://funsep.com.br/se/index.html#/" target="_blank">Experimente a nova versão</a></span>
+            </div>
+
+            <!-- AVISO IMPORTANTE COMENTADO TEMPORARIAMENTE
+            <div class="aviso-importante">
+                <div class="aviso-header">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    AVISO - ATENDIMENTO NO PERÍODO DE 24/12 a 05/01/2026
+                </div>
+                <div class="aviso-content">
+                    <p><strong>DIAS 24 e 31/12/25 - NÃO HAVERÁ ATENDIMENTO PRESENCIAL</strong><br>
+                    (SOMENTE ATRAVÉS DO WHATSAPP – <a href="https://wa.me/5541984547236" target="_blank">41-98454-7236</a> até às 12h)</p>
+
+                    <p><strong>DIAS 26/12/2025 e 02/01/2026 – NÃO HAVERÁ ATENDIMENTO PRESENCIAL</strong><br>
+                    SOMENTE ATRAVÉS DO WHATSAPP E E-MAILS:</p>
+
+                    <div class="contatos-aviso">
+                        <p><i class="fab fa-whatsapp"></i> <strong>WhatsApp:</strong> <a href="https://wa.me/5541984547236" target="_blank">41-98454-7236</a></p>
+                        <p><i class="fas fa-envelope"></i> <strong>E-mails:</strong><br>
+                        <a href="mailto:funsep@unimedcuritiba.com.br">funsep@unimedcuritiba.com.br</a><br>
+                        <a href="mailto:atendimento.funsep@gmail.com">atendimento.funsep@gmail.com</a><br>
+                        <a href="mailto:funsep@funsep.com.br">funsep@funsep.com.br</a><br>
+                        <a href="mailto:financeirofunsep@gmail.com">financeirofunsep@gmail.com</a></p>
+                    </div>
+                </div>
+            </div>
+            -->
+
+            <div id="home-content-mobile">
+                <div class="secao-moderna">
+                    <div class="secao-header">
+                        <h2>
+                            <i class="fas fa-newspaper"></i>
+                            Notícias FUNSEP
+                        </h2>
+                    </div>
+                    <div class="secao-conteudo">
+                        <div id="noticias-list-mobile" class="noticias-container">
+                            <!-- Notícias serão carregadas aqui via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="secao-moderna">
+                    <div class="secao-header">
+                        <h2>
+                            <i class="fas fa-building"></i>
+                            Sobre Nós
+                        </h2>
+                    </div>
+                    <div class="secao-conteudo">
+                        <div class="sobre-container">
+                            <div class="sobre-imagem">
+                                <div class="imagem-frame">
+                                    <img src="imagens/funsep-atendimento.jpg" alt="FUNSEP Atendimento" />
+                                </div>
+                            </div>
+                            <div class="sobre-texto">
+                                <p class="texto-destaque">O Funsep é uma instituição que existe para dar assistência à saúde dos servidores do Poder Judiciário e seus dependentes.</p>
+
+                                <p>O Fundo foi criado em <strong>1983</strong>, por um decreto da Presidência do Tribunal de Justiça. A sua administração é feita por um Conselho Diretor do qual fazem parte quatro servidores.</p>
+
+                                <p>Com um quadro próprio de funcionários, o Funsep está instalado no <strong>Centro Cívico</strong>, na rua <strong>Papa João XXIII, 244</strong>.</p>
+
+                                <p>Desde o dia <strong>1º de março de 2006</strong>, o atendimento está sendo feito pelo sistema <strong>Unimed</strong>, que atinge todo o território do País.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dynamic-content-mobile" class="hidden"></div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <span>Desenvolvido por</span>
+                <img src="https://onev2.seellbr.com/assets/images/logoblack.png" alt="seeLL">
+            </div>
+            <div class="footer-info">
+                <p>© 2026 - Todos os direitos reservados | seeLL & Funsep</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Inicializar Supabase
+        const SUPABASE_URL = "https://akjwxhidgbrrtfzqucln.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrand4aGlkZ2JycnRmenF1Y2xuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyODM0MTIsImV4cCI6MjA3Mjg1OTQxMn0.7bfCxFiWLaxGfe8A1ZSbHxV_hiSP8eYZCCX5GX7qxvw";
+        const { createClient } = window.supabase;
+        const dbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Função para carregar notícias do Supabase
+        async function loadNoticias() {
+            const noticiasContainer = document.getElementById('noticias-list');
+            const noticiasContainerMobile = document.getElementById('noticias-list-mobile');
+            
+            if (!noticiasContainer && !noticiasContainerMobile) return;
+
+            // Mostrar loading
+            if (noticiasContainer) {
+                noticiasContainer.innerHTML = '<div class="noticias-loading">Carregando notícias...</div>';
+            }
+            if (noticiasContainerMobile) {
+                noticiasContainerMobile.innerHTML = '<div class="noticias-loading">Carregando notícias...</div>';
+            }
+
+            try {
+                const { data: noticias, error } = await dbClient
+                    .from('noticias')
+                    .select('*')
+                    .eq('publicado', true)
+                    .order('data_publicacao', { ascending: false })
+                    .limit(4);
+
+                if (error) throw error;
+
+                const noticiasHTML = noticias && noticias.length > 0 
+                    ? noticias.map(noticia => createNoticiaCard(noticia)).join('')
+                    : '<div class="noticias-empty">Nenhuma notícia disponível no momento.</div>';
+
+                if (noticiasContainer) {
+                    noticiasContainer.innerHTML = noticiasHTML;
+                }
+                if (noticiasContainerMobile) {
+                    noticiasContainerMobile.innerHTML = noticiasHTML;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar notícias:', error);
+                const errorHTML = '<div class="noticias-error">Erro ao carregar notícias. Tente novamente mais tarde.</div>';
+                if (noticiasContainer) {
+                    noticiasContainer.innerHTML = errorHTML;
+                }
+                if (noticiasContainerMobile) {
+                    noticiasContainerMobile.innerHTML = errorHTML;
+                }
+            }
+        }
+
+        function createNoticiaCard(noticia) {
+            const categoriaColors = {
+                'Saúde': '#16a34a',
+                'Informativo': '#3b82f6',
+                'Benefícios': '#10b981',
+                'Tecnologia': '#a855f7',
+                'Geral': '#6b7280'
+            };
+
+            const cor = categoriaColors[noticia.categoria] || '#6b7280';
+            
+            const dataPublicacao = noticia.data_publicacao 
+                ? new Date(noticia.data_publicacao).toLocaleDateString('pt-BR', { 
+                    day: '2-digit', 
+                    month: 'long', 
+                    year: 'numeric' 
+                })
+                : 'Data não informada';
+
+            // Garantir que a URL da imagem seja absoluta
+            let imagemUrl = noticia.imagem_url;
+            if (imagemUrl && !imagemUrl.startsWith('http')) {
+                // Se for uma URL relativa, adicionar o domínio base
+                imagemUrl = window.location.origin + '/' + imagemUrl.replace(/^\//, '');
+            }
+
+            return `
+                <div class="noticia-card">
+                    ${imagemUrl ? `
+                    ` : ''}
+                    <div class="noticia-content">
+                        <div class="noticia-header">
+                            <span class="noticia-categoria" style="background-color: ${cor}">
+                                ${noticia.categoria}
+                            </span>
+                            <span class="noticia-data">
+                                <i class="fas fa-calendar"></i>
+                                ${dataPublicacao}
+                            </span>
+                        </div>
+                        <h3 class="noticia-titulo">${noticia.titulo}</h3>
+                        <p class="noticia-resumo">${noticia.resumo}</p>
+                        <button class="noticia-ler-mais" onclick="verNoticia('${noticia.id}')">
+                            Leia mais
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function verNoticia(id) {
+            try {
+                const { data: noticia, error } = await dbClient
+                    .from('noticias')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error) throw error;
+
+                const isMobile = window.innerWidth <= 768;
+                const prefix = isMobile ? '-mobile' : '';
+                const homeContent = document.getElementById(`home-content${prefix}`);
+                const dynamicContent = document.getElementById(`dynamic-content${prefix}`);
+
+                if (isMobile && document.querySelector('.sidebar-mobile').classList.contains('active')) {
+                    toggleMenu();
+                }
+
+                homeContent.classList.add('hidden');
+                dynamicContent.classList.remove('hidden');
+
+                const categoriaColors = {
+                    'Saúde': '#16a34a',
+                    'Informativo': '#3b82f6',
+                    'Benefícios': '#10b981',
+                    'Tecnologia': '#a855f7',
+                    'Geral': '#6b7280'
+                };
+
+                const cor = categoriaColors[noticia.categoria] || '#6b7280';
+                
+                const dataPublicacao = noticia.data_publicacao 
+                    ? new Date(noticia.data_publicacao).toLocaleDateString('pt-BR', { 
+                        day: '2-digit', 
+                        month: 'long', 
+                        year: 'numeric' 
+                    })
+                    : 'Data não informada';
+
+                // Garantir que a URL da imagem seja absoluta
+                let imagemUrl = noticia.imagem_url;
+                if (imagemUrl && !imagemUrl.startsWith('http')) {
+                    // Se for uma URL relativa, adicionar o domínio base
+                    imagemUrl = window.location.origin + '/' + imagemUrl.replace(/^\//, '');
+                }
+
+                dynamicContent.innerHTML = `
+                    <div class="noticia-detalhes">
+                        <button class="btn-voltar" onclick="voltarHome()">
+                            <i class="fas fa-arrow-left"></i>
+                            Voltar
+                        </button>
+                        
+                        <div class="noticia-detalhes-header">
+                            <span class="noticia-categoria" style="background-color: ${cor}">
+                                ${noticia.categoria}
+                            </span>
+                            <span class="noticia-data">
+                                <i class="fas fa-calendar"></i>
+                                ${dataPublicacao}
+                            </span>
+                        </div>
+                        
+                        <h1 class="noticia-detalhes-titulo">${noticia.titulo}</h1>
+                        
+                        <div class="noticia-detalhes-conteudo">
+                            ${noticia.conteudo}
+                            ${imagemUrl ? `
+                                <img src="${imagemUrl}" alt="${noticia.titulo}" class="noticia-detalhes-imagem"
+                                     onerror="this.style.display='none';">
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (error) {
+                console.error('Erro ao carregar notícia:', error);
+                alert('Erro ao carregar a notícia. Tente novamente.');
+            }
+        }
+
+        function voltarHome() {
+            const isMobile = window.innerWidth <= 768;
+            const prefix = isMobile ? '-mobile' : '';
+            const homeContent = document.getElementById(`home-content${prefix}`);
+            const dynamicContent = document.getElementById(`dynamic-content${prefix}`);
+
+            homeContent.classList.remove('hidden');
+            dynamicContent.classList.add('hidden');
+            dynamicContent.innerHTML = '';
+
+            // Remove active dos menus
+            document.querySelectorAll('.menu-desktop-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.menu-mobile-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.submenu-desktop-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.submenu-mobile-item').forEach(i => i.classList.remove('active'));
+            
+            // Ativa o item Home
+            document.querySelector('.menu-desktop-item[data-page="home"]')?.classList.add('active');
+            document.querySelector('.menu-mobile-item[data-page="home"]')?.classList.add('active');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleMenu() {
+            const sidebar = document.querySelector('.sidebar-mobile');
+            const overlay = document.querySelector('.menu-overlay');
+            const isActive = sidebar.classList.contains('active');
+            
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+            document.body.style.overflow = isActive ? '' : 'hidden';
+        }
+
+        function loadPage(page, title, isMobile = false) {
+            const prefix = isMobile ? '-mobile' : '';
+            const homeContent = document.getElementById(`home-content${prefix}`);
+            const dynamicContent = document.getElementById(`dynamic-content${prefix}`);
+
+            // Fecha menu mobile se estiver aberto
+            if (isMobile && document.querySelector('.sidebar-mobile').classList.contains('active')) {
+                toggleMenu();
+            }
+
+            // Se for home, mostra conteúdo inicial
+            if (page === 'home') {
+                homeContent.classList.remove('hidden');
+                dynamicContent.classList.add('hidden');
+                dynamicContent.innerHTML = '';
+            } else {
+                // Esconde conteúdo inicial e mostra dinâmico
+                homeContent.classList.add('hidden');
+                dynamicContent.classList.remove('hidden');
+                
+                // Carrega nova página em iframe
+                dynamicContent.innerHTML = `
+                    <div class="content-card">
+                        <iframe src="${page}" scrolling="no" onload="resizeIframe(this)"></iframe>
+                    </div>
+                `;
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function loadRequerimento(requerimentoId, isMobile = false) {
+            const prefix = isMobile ? '-mobile' : '';
+            const homeContent = document.getElementById(`home-content${prefix}`);
+            const dynamicContent = document.getElementById(`dynamic-content${prefix}`);
+
+            // Fecha menu mobile se estiver aberto
+            if (isMobile && document.querySelector('.sidebar-mobile').classList.contains('active')) {
+                toggleMenu();
+            }
+
+            // Esconde conteúdo inicial e mostra dinâmico
+            homeContent.classList.add('hidden');
+            dynamicContent.classList.remove('hidden');
+            
+            // Carrega requerimento específico
+            dynamicContent.innerHTML = `
+                <div class="content-card">
+                    <iframe src="requerimento.html#${requerimentoId}" scrolling="no" onload="resizeIframe(this)"></iframe>
+                </div>
+            `;
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resizeIframe(iframe) {
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                if (iframeDoc && iframeDoc.body) {
+                    const applyHeight = () => {
+                        const height = Math.max(
+                            iframeDoc.body.scrollHeight,
+                            iframeDoc.documentElement.scrollHeight
+                        );
+                        if (height > 0) {
+                            iframe.style.height = (height + 30) + 'px';
+                        }
+                    };
+                    applyHeight();
+                    setTimeout(applyHeight, 100);
+                }
+            } catch(e) {
+                iframe.style.height = '80vh';
+            }
+        }
+
+        // Desktop menu - items normais
+        document.querySelectorAll('.menu-desktop-item[data-page]').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Atualiza classes active
+                document.querySelectorAll('.menu-desktop-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.submenu-desktop-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                const page = this.getAttribute('data-page');
+                const title = this.getAttribute('data-title');
+                loadPage(page, title, false);
+            });
+        });
+
+        // Desktop menu - toggle submenu requerimentos
+        document.getElementById('requerimentos-menu-desktop').addEventListener('click', function(e) {
+            e.preventDefault();
+            this.classList.toggle('expanded');
+            document.getElementById('submenu-requerimentos-desktop').classList.toggle('expanded');
+        });
+
+        // Desktop menu - itens do submenu
+        document.querySelectorAll('.submenu-desktop-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Atualiza classes active
+                document.querySelectorAll('.menu-desktop-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.submenu-desktop-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('requerimentos-menu-desktop').classList.add('active');
+                
+                const requerimentoId = this.getAttribute('data-requerimento');
+                loadRequerimento(requerimentoId, false);
+            });
+        });
+
+        // Mobile menu - items normais
+        document.querySelectorAll('.menu-mobile-item[data-page]').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Atualiza classes active
+                document.querySelectorAll('.menu-mobile-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.submenu-mobile-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                const page = this.getAttribute('data-page');
+                const title = this.getAttribute('data-title');
+                loadPage(page, title, true);
+            });
+        });
+
+        // Mobile menu - toggle submenu requerimentos
+        document.getElementById('requerimentos-menu-mobile').addEventListener('click', function(e) {
+            e.preventDefault();
+            this.classList.toggle('expanded');
+            document.getElementById('submenu-requerimentos-mobile').classList.toggle('expanded');
+        });
+
+        // Mobile menu - itens do submenu
+        document.querySelectorAll('.submenu-mobile-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Atualiza classes active
+                document.querySelectorAll('.menu-mobile-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.submenu-mobile-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('requerimentos-menu-mobile').classList.add('active');
+                
+                const requerimentoId = this.getAttribute('data-requerimento');
+                loadRequerimento(requerimentoId, true);
+            });
+        });
+
+        // Carregar notícias quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            loadNoticias();
+        });
+    </script>
+</body>
+</html>

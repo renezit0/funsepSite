@@ -1,0 +1,10 @@
+project_id = "akjwxhidgbrrtfzqucln"
+
+[functions.generate-report]
+verify_jwt = false
+
+[functions.view-report]
+verify_jwt = false
+
+[functions.auth-login]
+verify_jwt = false
