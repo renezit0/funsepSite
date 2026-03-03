@@ -18,6 +18,11 @@ import { RequestsPage } from "@/components/pages/RequestsPage";
 import { MyRequestsPage } from "@/components/pages/MyRequestsPage";
 import { SobreFunsepPage } from "@/components/pages/SobreFunsepPage";
 import { extractClickInfo, logAuditEvent } from "@/utils/auditLogger";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ViewReportByToken } from "@/components/pages/ViewReportByToken";
+import { useLocation, useNavigate } from "react-router-dom";
+import ResetPassword from "./ResetPassword";
+import { BeneficiaryOccurrencesPage } from "@/components/pages/BeneficiaryOccurrencesPage";
 
 const pageConfig = {
   home: { title: "Início", component: HomePage, type: "home" as const },
@@ -29,6 +34,7 @@ const pageConfig = {
   requests: { title: "Requerimentos", component: RequestsPage, type: "regular" as const },
   myRequests: { title: "Meus Requerimentos", component: MyRequestsPage, type: "regular" as const },
   reports: { title: "Relatórios", component: ReportsPage, type: "regular" as const },
+  occurrences: { title: "Minhas Ocorrências", component: BeneficiaryOccurrencesPage, type: "regular" as const },
   admin: { title: "Administração", component: PlaceholderPage, icon: Settings, type: "placeholder" as const },
   contact: { title: "Localização e Contato", component: ContactPage, type: "regular" as const },
   healthtips: { title: "Dicas de Saúde", component: HealthTipsPage, type: "regular" as const },
@@ -40,7 +46,11 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [validateByUrlModalOpen, setValidateByUrlModalOpen] = useState(false);
+  const [resetByHashOpen, setResetByHashOpen] = useState(false);
   const currentPageRef = useRef(currentPage);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const auditUser = useMemo(() => {
     if (!session) return null;
@@ -109,12 +119,35 @@ const Index = () => {
     return () => document.removeEventListener("click", handleDocumentClick, true);
   }, [auditUser]);
 
+  useEffect(() => {
+    if (location.pathname === "/valida-token") {
+      setValidateByUrlModalOpen(true);
+      setCurrentPage("home");
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setResetByHashOpen(location.hash.startsWith("#/redefinir-senha/"));
+  }, [location.hash]);
+
+  const handleCloseValidateModal = (open: boolean) => {
+    setValidateByUrlModalOpen(open);
+    if (!open && location.pathname === "/valida-token") {
+      navigate("/", { replace: true });
+    }
+  };
+
+  if (resetByHashOpen) {
+    return <ResetPassword />;
+  }
+
   return (
     <div className="min-h-screen bg-bg-secondary overflow-x-hidden w-full max-w-full">
       <Sidebar
         currentPage={currentPage}
         onPageChange={handlePageChange}
         onLoginClick={openLoginModal}
+        onOpenOccurrence={() => setCurrentPage("occurrences")}
         isOpen={sidebarOpen}
         onToggle={toggleSidebar}
       />
@@ -124,6 +157,7 @@ const Index = () => {
           title={currentPageConfig.title}
           onMenuToggle={toggleSidebar}
           onLoginClick={openLoginModal}
+          onOpenOccurrence={() => setCurrentPage("occurrences")}
           isAuthenticated={isAuthenticated}
         />
         
@@ -172,6 +206,9 @@ const Index = () => {
           {currentPageConfig.type === "regular" && currentPage === "reports" && (
             <ReportsPage />
           )}
+          {currentPageConfig.type === "regular" && currentPage === "occurrences" && (
+            <BeneficiaryOccurrencesPage />
+          )}
         </main>
       </div>
 
@@ -179,6 +216,16 @@ const Index = () => {
         isOpen={loginModalOpen}
         onClose={closeLoginModal}
       />
+
+      <Dialog open={validateByUrlModalOpen} onOpenChange={handleCloseValidateModal}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Validação de Relatório</DialogTitle>
+          </DialogHeader>
+          <ViewReportByToken />
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };

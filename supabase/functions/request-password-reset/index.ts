@@ -32,6 +32,23 @@ interface ValidationResult {
   error?: string
 }
 
+const normalizeCpf = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined) return ''
+  const digits = String(value).replace(/\D/g, '')
+  if (!digits) return ''
+  return digits.padStart(11, '0').slice(-11)
+}
+
+const cpfVariants = (value: string | number | null | undefined): string[] => {
+  const normalized = normalizeCpf(value)
+  if (!normalized) return []
+
+  const compact = normalized.replace(/^0+/, '') || '0'
+  if (compact === normalized) return [normalized]
+
+  return [normalized, compact]
+}
+
 // ============= FUNÇÕES DE AUTENTICAÇÃO (inline) =============
 
 /**
@@ -159,7 +176,11 @@ Deno.serve(async (req) => {
     const authToken = extractToken(req)
     let adminSigla: string | null = null
 
-    if (authToken) {
+    // Token de sessão admin (formato UUID) é opcional.
+    // JWT do cliente Supabase (anon key) contém pontos e NÃO deve ser validado em admin_sessions.
+    const isSupabaseJwt = authToken?.includes('.')
+
+    if (authToken && !isSupabaseJwt) {
       // Validar que é admin com permissões adequadas
       const validation = await validateToken(supabase, authToken)
 
@@ -268,7 +289,7 @@ Deno.serve(async (req) => {
     const { data: senhaExistente } = await supabase
       .from('senhas')
       .select('id')
-      .eq('cpf', beneficiario.cpf.toString())
+      .in('cpf', cpfVariants(beneficiario.cpf))
       .maybeSingle()
 
     const isFirstTime = !senhaExistente

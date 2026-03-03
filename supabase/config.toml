@@ -8,3 +8,15 @@ verify_jwt = false
 
 [functions.auth-login]
 verify_jwt = false
+
+[functions.request-password-reset]
+verify_jwt = false
+
+[functions.submit-support-message]
+verify_jwt = false
+
+[functions.notify-support-message]
+verify_jwt = false
+
+[functions.send-custom-link]
+verify_jwt = false

@@ -9,6 +9,16 @@ interface GeneratePDFOptions {
 export async function generatePDFFromHTML({ htmlContent, filename }: GeneratePDFOptions): Promise<void> {
   // Referência ao iframe para garantir limpeza
   let iframeRef: HTMLIFrameElement | null = null;
+  const extractedToken = (() => {
+    const tokenLabelIndex = htmlContent.indexOf('Token de Validação');
+    if (tokenLabelIndex === -1) return null;
+
+    const tokenSlice = htmlContent.slice(tokenLabelIndex, tokenLabelIndex + 600);
+    const uuidMatch = tokenSlice.match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
+    if (uuidMatch) return uuidMatch[0];
+
+    return null;
+  })();
 
   try {
     // Criar iframe isolado para não afetar estilos da página principal
@@ -399,6 +409,18 @@ export async function generatePDFFromHTML({ htmlContent, filename }: GeneratePDF
       pdf.setFontSize(9);
       pdf.setTextColor(100, 100, 100);
       pdf.text(`${pageNum}/${totalPages}`, 210 - marginLeft, 297 - marginLeft, { align: 'right' });
+
+      // Escrever token como texto real no PDF (selecionável/copiável), na última página
+      if (extractedToken && i === totalPages - 1) {
+        const validationUrl = `https://funsep.com.br/valida-token?=${extractedToken}`;
+        const tokenBoxY = 285;
+        const tokenBoxHeight = 8;
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(marginLeft, tokenBoxY, 185, tokenBoxHeight, 'F');
+        pdf.setFontSize(8);
+        pdf.setTextColor(30, 30, 30);
+        pdf.text(`Validar: ${validationUrl}`, marginLeft + 1, tokenBoxY + 5.2, { maxWidth: 182 });
+      }
     }
 
     pdf.save(filename);

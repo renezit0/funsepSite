@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Search, Key, Plus, Edit2, Trash2, UserCheck, Info, Mail } from "lucide-react";
+import { Search, Key, Plus, Edit2, Trash2, UserCheck, Info, Mail, Link2 } from "lucide-react";
 import { supabase, SUPABASE_CONFIG } from "@/integrations/supabase/client";
 import { useFeedback } from "@/contexts/FeedbackContext";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,23 @@ interface Beneficiario {
   situacao: number;
 }
 
+const normalizeCpf = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined) return "";
+  const digits = String(value).replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.padStart(11, "0").slice(-11);
+};
+
+const cpfVariants = (value: string | number | null | undefined): string[] => {
+  const normalized = normalizeCpf(value);
+  if (!normalized) return [];
+
+  const compact = normalized.replace(/^0+/, "") || "0";
+  if (compact === normalized) return [normalized];
+
+  return [normalized, compact];
+};
+
 export function PasswordsPage() {
   const [senhas, setSenhas] = useState<Senha[]>([]);
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
@@ -52,6 +70,17 @@ export function PasswordsPage() {
 
   // Busca para enviar link de cadastro
   const [sendLinkSearch, setSendLinkSearch] = useState("");
+  const [showCustomLinkModal, setShowCustomLinkModal] = useState(false);
+  const [isSendingCustomLink, setIsSendingCustomLink] = useState(false);
+  const [customLinkChannel, setCustomLinkChannel] = useState<"EMAIL" | "WHATSAPP" | "AMBOS">("EMAIL");
+  const [customLinkData, setCustomLinkData] = useState({
+    matricula: 0,
+    cpf: "",
+    nome: "",
+    email: "",
+    telefone: "",
+    mensagem: ""
+  });
 
   const { session } = useAuth();
   const { mostrarToast, mostrarFeedback, mostrarConfirmacao } = useFeedback();
@@ -119,7 +148,7 @@ export function PasswordsPage() {
     e.preventDefault();
     
     try {
-      const cleanCpf = formData.cpf.replace(/\D/g, "");
+      const cleanCpf = normalizeCpf(formData.cpf);
       
       if (editingSenha) {
         const updateData: Record<string, unknown> = {
@@ -276,7 +305,7 @@ export function PasswordsPage() {
     const { data: senhaExistente } = await supabase
       .from('senhas')
       .select('id')
-      .eq('cpf', benData.cpf.toString())
+      .in('cpf', cpfVariants(benData.cpf))
       .maybeSingle();
 
     const mensagem = senhaExistente
@@ -322,6 +351,77 @@ export function PasswordsPage() {
     );
   };
 
+  const handleOpenCustomLinkModal = async (beneficiario: Beneficiario) => {
+    const { data: benData, error } = await supabase
+      .from('cadben')
+      .select('nome, email, telefone, telefone1')
+      .eq('matricula', beneficiario.matricula)
+      .maybeSingle();
+
+    if (error || !benData) {
+      mostrarFeedback('erro', 'Erro', 'Não foi possível carregar os dados do associado.');
+      return;
+    }
+
+    setCustomLinkData({
+      matricula: beneficiario.matricula,
+      cpf: normalizeCpf(beneficiario.cpf),
+      nome: benData.nome || beneficiario.nome || "",
+      email: benData.email || "",
+      telefone: (benData.telefone || benData.telefone1 || ""),
+      mensagem: "Olá associado FUNSEP, segue sua resposta referente à ocorrência."
+    });
+    setCustomLinkChannel("EMAIL");
+    setShowCustomLinkModal(true);
+  };
+
+  const handleSendCustomLink = async () => {
+    if ((customLinkChannel === "EMAIL" || customLinkChannel === "AMBOS") && !customLinkData.email.trim()) {
+      mostrarFeedback('erro', 'Erro', 'Informe um e-mail para envio.');
+      return;
+    }
+
+    if ((customLinkChannel === "WHATSAPP" || customLinkChannel === "AMBOS") && !customLinkData.telefone.trim()) {
+      mostrarFeedback('erro', 'Erro', 'Informe um telefone para envio via WhatsApp.');
+      return;
+    }
+
+    setIsSendingCustomLink(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-custom-link", {
+        body: {
+          matricula: customLinkData.matricula,
+          cpf: customLinkData.cpf,
+          nome: customLinkData.nome || "Associado",
+          email: customLinkData.email,
+          telefone: customLinkData.telefone,
+          mensagem: customLinkData.mensagem,
+          canal: customLinkChannel,
+        },
+      });
+
+      if (error || data?.success === false) {
+        throw new Error(data?.error || error?.message || "Não foi possível enviar o link.");
+      }
+
+      mostrarToast('sucesso', 'Link personalizado enviado com sucesso!');
+      setShowCustomLinkModal(false);
+      setCustomLinkData({
+        matricula: 0,
+        cpf: "",
+        nome: "",
+        email: "",
+        telefone: "",
+        mensagem: ""
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao enviar link personalizado.';
+      mostrarFeedback('erro', 'Erro', msg);
+    } finally {
+      setIsSendingCustomLink(false);
+    }
+  };
+
   const formatCPF = (value: string) => {
     const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 11) {
@@ -335,7 +435,7 @@ export function PasswordsPage() {
       ...formData,
       matricula: beneficiario.matricula.toString(),
       nome: beneficiario.nome,
-      cpf: beneficiario.cpf.toString()
+      cpf: normalizeCpf(beneficiario.cpf)
     });
     setBeneficiarioSearch(beneficiario.nome);
   };
@@ -348,18 +448,18 @@ export function PasswordsPage() {
   });
 
   // Função para remover acentos e normalizar texto
-  const normalizeText = (text: string): string => {
+  function normalizeText(text: string): string {
     return text
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '') // Remove acentos
       .trim();
-  };
+  }
 
   // Função para verificar se é número
-  const isNumeric = (str: string): boolean => {
+  function isNumeric(str: string): boolean {
     return /^\d+$/.test(str.trim());
-  };
+  }
 
   // Filtro otimizado para beneficiários (modal de criar senha)
   const filteredBeneficiarios = useMemo(() => {
@@ -384,7 +484,7 @@ export function PasswordsPage() {
 
       const nome = ben.nome ? normalizeText(ben.nome.toString()) : '';
       const matricula = ben.matricula ? ben.matricula.toString() : '';
-      const cpf = ben.cpf ? ben.cpf.toString() : '';
+      const cpf = ben.cpf ? normalizeCpf(ben.cpf) : '';
 
       if (isNumberSearch) {
         // Para números: busca exata em matrícula ou CPF
@@ -418,7 +518,7 @@ export function PasswordsPage() {
 
       const nome = ben.nome ? normalizeText(ben.nome.toString()) : '';
       const matricula = ben.matricula ? ben.matricula.toString() : '';
-      const cpf = ben.cpf ? ben.cpf.toString() : '';
+      const cpf = ben.cpf ? normalizeCpf(ben.cpf) : '';
 
       if (isNumberSearch) {
         return matricula === searchTerm || cpf.includes(searchTerm);
@@ -492,21 +592,32 @@ export function PasswordsPage() {
                       <div className="flex-1">
                         <div className="font-medium">{ben.nome}</div>
                         <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
-                          <span>CPF: {formatCPF(ben.cpf.toString())}</span>
+                          <span>CPF: {formatCPF(normalizeCpf(ben.cpf))}</span>
                           <span>Mat: {ben.matricula}</span>
                           <Badge variant={ben.situacao === 1 || ben.situacao === 2 ? "outline" : "destructive"}>
                             {ben.situacao === 1 || ben.situacao === 2 ? "Ativo" : "Inativo"}
                           </Badge>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleSendLinkToAnyBeneficiary(ben)}
-                        className="gap-2"
-                      >
-                        <Mail className="h-4 w-4" />
-                        Enviar Link
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleSendLinkToAnyBeneficiary(ben)}
+                          className="gap-2"
+                        >
+                          <Mail className="h-4 w-4" />
+                          Enviar Link
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenCustomLinkModal(ben)}
+                          className="gap-2"
+                        >
+                          <Link2 className="h-4 w-4" />
+                          Personalizado
+                        </Button>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -527,6 +638,97 @@ export function PasswordsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showCustomLinkModal} onOpenChange={setShowCustomLinkModal}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Enviar link personalizado ao associado</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Canal de envio</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Button
+                  type="button"
+                  variant={customLinkChannel === "EMAIL" ? "default" : "outline"}
+                  onClick={() => setCustomLinkChannel("EMAIL")}
+                >
+                  E-mail
+                </Button>
+                <Button
+                  type="button"
+                  variant={customLinkChannel === "WHATSAPP" ? "default" : "outline"}
+                  onClick={() => setCustomLinkChannel("WHATSAPP")}
+                >
+                  WhatsApp
+                </Button>
+                <Button
+                  type="button"
+                  variant={customLinkChannel === "AMBOS" ? "default" : "outline"}
+                  onClick={() => setCustomLinkChannel("AMBOS")}
+                >
+                  E-mail + WhatsApp
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                value={customLinkData.nome}
+                onChange={(e) => setCustomLinkData({ ...customLinkData, nome: e.target.value })}
+                placeholder="Nome do associado"
+              />
+            </div>
+
+            {(customLinkChannel === "EMAIL" || customLinkChannel === "AMBOS") && (
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <Input
+                  type="email"
+                  value={customLinkData.email}
+                  onChange={(e) => setCustomLinkData({ ...customLinkData, email: e.target.value })}
+                  placeholder="associado@email.com"
+                />
+              </div>
+            )}
+
+            {(customLinkChannel === "WHATSAPP" || customLinkChannel === "AMBOS") && (
+              <div className="space-y-2">
+                <Label>Telefone (WhatsApp)</Label>
+                <Input
+                  value={customLinkData.telefone}
+                  onChange={(e) => setCustomLinkData({ ...customLinkData, telefone: e.target.value })}
+                  placeholder="(41) 99999-9999"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Mensagem</Label>
+              <Textarea
+                rows={4}
+                value={customLinkData.mensagem}
+                onChange={(e) => setCustomLinkData({ ...customLinkData, mensagem: e.target.value })}
+                placeholder="Olá associado FUNSEP, segue sua resposta referente à ocorrência."
+              />
+              <p className="text-xs text-muted-foreground">
+                O link de redefinição é gerado automaticamente e será incluído no e-mail/WhatsApp.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowCustomLinkModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSendCustomLink} disabled={isSendingCustomLink}>
+                {isSendingCustomLink ? "Enviando..." : "Enviar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
         <div className="relative flex-1 max-w-full sm:max-w-md">
@@ -584,7 +786,7 @@ export function PasswordsPage() {
                             <div>
                               <div className="font-medium">{ben.nome}</div>
                               <div className="text-sm text-muted-foreground">
-                                CPF: {formatCPF(ben.cpf.toString())}
+                                CPF: {formatCPF(normalizeCpf(ben.cpf))}
                               </div>
                             </div>
                             <Badge variant={ben.situacao === 1 || ben.situacao === 2 ? "outline" : "destructive"}>

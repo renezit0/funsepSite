@@ -27,6 +27,8 @@ interface User {
   secao: string;
   senha?: string;
   status: string;
+  cpf?: string | null;
+  telefone?: string | null;
 }
 
 interface EditUserModalProps {
@@ -44,7 +46,9 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
     cargo: "",
     secao: "",
     senha: "",
-    status: "ATIVO"
+    status: "ATIVO",
+    cpf: "",
+    telefone: "",
   });
   const [loading, setLoading] = useState(false);
   const { mostrarToast, mostrarFeedback } = useFeedback();
@@ -69,6 +73,8 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
         cargo: formData.cargo,
         secao: formData.secao,
         status: formData.status,
+        cpf: (formData.cpf || "").replace(/\D/g, "") || null,
+        telefone: (formData.telefone || "").replace(/\D/g, "") || null,
       };
 
       // Apenas desenvolvedores podem alterar a sigla
@@ -157,6 +163,28 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
                 <SelectItem value="AUXILIAR">Auxiliar</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cpf">CPF</Label>
+            <Input
+              id="cpf"
+              value={formData.cpf || ""}
+              onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, "").slice(0, 11) })}
+              maxLength={11}
+              placeholder="Somente números"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="telefone">Telefone (WhatsApp)</Label>
+            <Input
+              id="telefone"
+              value={formData.telefone || ""}
+              onChange={(e) => setFormData({ ...formData, telefone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
+              maxLength={11}
+              placeholder="DDD + número"
+            />
           </div>
 
           <div className="space-y-2">

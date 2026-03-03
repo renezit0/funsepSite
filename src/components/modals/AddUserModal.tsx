@@ -33,6 +33,7 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
     secao: "",
     senha: "",
     cpf: "",
+    telefone: "",
   });
   const [loading, setLoading] = useState(false);
   const { mostrarToast, mostrarFeedback } = useFeedback();
@@ -57,6 +58,7 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
           secao: formData.secao || null,
           senha: formData.senha,
           cpf: formData.cpf || null,
+          telefone: formData.telefone.replace(/\D/g, "") || null,
           status: 'ATIVO'
         });
 
@@ -77,6 +79,7 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
         secao: "",
         senha: "",
         cpf: "",
+        telefone: "",
       });
       onUserAdded();
       onOpenChange(false);
@@ -130,6 +133,17 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
               value={formData.cpf}
               onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
               placeholder="Somente números"
+              maxLength={11}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="telefone">Telefone (WhatsApp)</Label>
+            <Input
+              id="telefone"
+              value={formData.telefone}
+              onChange={(e) => setFormData({ ...formData, telefone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+              placeholder="DDD + número (somente números)"
               maxLength={11}
             />
           </div>

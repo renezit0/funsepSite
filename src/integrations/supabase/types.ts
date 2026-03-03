@@ -837,6 +837,131 @@ export type Database = {
         }
         Relationships: []
       }
+      support_messages: {
+        Row: {
+          awaiting_party: string | null
+          created_by_sigla: string | null
+          cpf: string
+          created_at: string
+          data_nascimento: string
+          email: string
+          feedback_interno: string | null
+          id: string
+          last_interaction_at: string | null
+          last_sender_sigla: string | null
+          last_sender_tipo: string | null
+          matricula: number | null
+          matricula_desconhecida: boolean
+          mensagem: string
+          nome: string
+          occurrence_code: string
+          origem: string
+          respondido_em: string | null
+          respondido_por_cargo: string | null
+          respondido_por_sigla: string | null
+          status: string
+          target_matricula: number | null
+          target_sigla: string | null
+          target_type: string
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          awaiting_party?: string | null
+          created_by_sigla?: string | null
+          cpf: string
+          created_at?: string
+          data_nascimento: string
+          email: string
+          feedback_interno?: string | null
+          id?: string
+          last_interaction_at?: string | null
+          last_sender_sigla?: string | null
+          last_sender_tipo?: string | null
+          matricula?: number | null
+          matricula_desconhecida?: boolean
+          mensagem: string
+          nome: string
+          occurrence_code?: string
+          origem?: string
+          respondido_em?: string | null
+          respondido_por_cargo?: string | null
+          respondido_por_sigla?: string | null
+          status?: string
+          target_matricula?: number | null
+          target_sigla?: string | null
+          target_type?: string
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          awaiting_party?: string | null
+          created_by_sigla?: string | null
+          cpf?: string
+          created_at?: string
+          data_nascimento?: string
+          email?: string
+          feedback_interno?: string | null
+          id?: string
+          last_interaction_at?: string | null
+          last_sender_sigla?: string | null
+          last_sender_tipo?: string | null
+          matricula?: number | null
+          matricula_desconhecida?: boolean
+          mensagem?: string
+          nome?: string
+          occurrence_code?: string
+          origem?: string
+          respondido_em?: string | null
+          respondido_por_cargo?: string | null
+          respondido_por_sigla?: string | null
+          status?: string
+          target_matricula?: number | null
+          target_sigla?: string | null
+          target_type?: string
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      support_message_replies: {
+        Row: {
+          created_at: string
+          id: string
+          mensagem: string
+          sender_nome: string | null
+          sender_sigla: string | null
+          sender_tipo: string
+          support_message_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mensagem: string
+          sender_nome?: string | null
+          sender_sigla?: string | null
+          sender_tipo: string
+          support_message_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mensagem?: string
+          sender_nome?: string | null
+          sender_sigla?: string | null
+          sender_tipo?: string
+          support_message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_message_replies_support_message_id_fkey"
+            columns: ["support_message_id"]
+            isOneToOne: false
+            referencedRelation: "support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       senhas: {
         Row: {
           cpf: string
@@ -984,6 +1109,7 @@ export type Database = {
           senha: string | null
           sigla: string | null
           status: string | null
+          telefone: string | null
         }
         Insert: {
           cargo?: string | null
@@ -994,6 +1120,7 @@ export type Database = {
           senha?: string | null
           sigla?: string | null
           status?: string | null
+          telefone?: string | null
         }
         Update: {
           cargo?: string | null
@@ -1004,6 +1131,7 @@ export type Database = {
           senha?: string | null
           sigla?: string | null
           status?: string | null
+          telefone?: string | null
         }
         Relationships: []
       }

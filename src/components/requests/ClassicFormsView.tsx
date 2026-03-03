@@ -24,14 +24,14 @@ const printStyles = `
   }
   body {
     font-family: Verdana, Arial, sans-serif;
-    font-size: 12px;
+    font-size: 11px;
     background-color: #fff;
     color: #000;
-    line-height: 1.5;
+    line-height: 1.35;
     width: 210mm;
     min-height: 297mm;
     margin: 0 auto;
-    padding: 15mm 20mm 20mm 20mm;
+    padding: 10mm 12mm 12mm 12mm;
   }
   .form-content {
     max-width: 100%;
@@ -39,16 +39,16 @@ const printStyles = `
   .form-title {
     text-align: center;
     color: #2a65b4;
-    margin-bottom: 20px;
-    font-size: 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
     font-weight: bold;
   }
   .deferimento-space {
-    min-height: 80px;
+    min-height: 50px;
     border: 2px solid #2a65b4;
     border-radius: 5px;
-    margin: 15px 0 25px 0;
-    padding: 12px 15px;
+    margin: 10px 0 14px 0;
+    padding: 8px 10px;
     background-color: #f0f7ff;
     page-break-inside: avoid;
     break-inside: avoid;
@@ -77,7 +77,7 @@ const printStyles = `
     align-items: center;
     gap: 8px;
     font-weight: bold;
-    font-size: 13px;
+    font-size: 12px;
   }
   .deferimento-checkbox {
     width: 18px;
@@ -96,7 +96,7 @@ const printStyles = `
     font-size: 12px;
   }
   .form-group {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
   .form-group label {
     display: inline-block;
@@ -116,7 +116,7 @@ const printStyles = `
     background: #fff;
   }
   .form-group textarea {
-    min-height: 80px;
+    min-height: 60px;
     resize: vertical;
   }
   .inline-input {
@@ -139,7 +139,7 @@ const printStyles = `
     gap: 20px;
     align-items: center;
     flex-wrap: wrap;
-    margin: 8px 0;
+    margin: 6px 0;
   }
   .checkbox-group label, .radio-group label {
     font-weight: normal;
@@ -154,10 +154,10 @@ const printStyles = `
   .section-title {
     font-weight: bold;
     color: #2a65b4;
-    margin: 24px 0 16px 0;
-    padding-bottom: 8px;
+    margin: 14px 0 10px 0;
+    padding-bottom: 4px;
     border-bottom: 2px solid #2a65b4;
-    font-size: 15px;
+    font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     page-break-after: avoid;
@@ -177,7 +177,7 @@ const printStyles = `
     margin: 5px 0;
   }
   .signature-line, .signature-block {
-    margin: 50px 0 30px 0;
+    margin: 28px 0 18px 0;
     text-align: center;
   }
   .signature-line::before {
@@ -191,8 +191,8 @@ const printStyles = `
     text-align: center;
   }
   .alert {
-    padding: 12px;
-    margin: 15px 0;
+    padding: 8px;
+    margin: 10px 0;
     border-radius: 4px;
     background-color: #fff3cd;
     border-left: 4px solid #ffc107;
@@ -202,7 +202,7 @@ const printStyles = `
     font-size: 11px;
   }
   p {
-    margin: 12px 0;
+    margin: 8px 0;
     text-align: justify;
   }
   /* Evitar que inputs inline sejam separados do texto */
@@ -216,7 +216,7 @@ const printStyles = `
   .page-break {
     page-break-before: always;
     break-before: page;
-    margin-top: 40px;
+    margin-top: 16px;
   }
   .avoid-break {
     page-break-inside: avoid;
@@ -225,12 +225,12 @@ const printStyles = `
   table {
     width: 100%;
     border-collapse: collapse;
-    margin: 12px 0;
+    margin: 8px 0;
   }
   table td, table th {
-    padding: 6px;
+    padding: 4px;
     border: 1px solid #ddd;
-    font-size: 11px;
+    font-size: 10px;
   }
   table th {
     background-color: #2a65b4;
@@ -582,7 +582,7 @@ export function ClassicFormsView({ initialFormId, hideSidebar = false }: Classic
       </head>
       <body class="${bodyClass}">
         <button class="print-button-overlay no-print" onclick="window.print()">🖨️ Imprimir Formulário</button>
-        <div class="form-content">
+        <div id="printable-content" class="form-content">
           ${formContent.innerHTML}
         </div>
         <script>

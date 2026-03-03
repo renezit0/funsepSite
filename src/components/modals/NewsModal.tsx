@@ -166,7 +166,10 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
         ...formData,
         imagem_url: imagemUrl,
         autor_sigla: session.sigla,
-        data_publicacao: formData.publicado ? new Date().toISOString() : null,
+        // Em edição, manter a data original de publicação/criação.
+        data_publicacao: editingNews
+          ? (editingNews.data_publicacao ?? null)
+          : (formData.publicado ? new Date().toISOString() : null),
       };
 
       let result;

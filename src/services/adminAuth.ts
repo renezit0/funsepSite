@@ -31,7 +31,22 @@ class AdminAuthService {
 
       if (error) {
         console.error('Erro no login:', error);
-        return { success: false, error: 'Erro na autenticação' };
+        let backendMessage = 'Erro na autenticação';
+
+        // Para erros HTTP da edge function, tenta extrair a mensagem real do body.
+        const response = (error as { context?: Response }).context;
+        if (response) {
+          try {
+            const payload = await response.clone().json();
+            if (payload?.error && typeof payload.error === 'string') {
+              backendMessage = payload.error;
+            }
+          } catch {
+            // noop
+          }
+        }
+
+        return { success: false, error: backendMessage };
       }
 
       if (!data.success) {

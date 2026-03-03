@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Hash, Copy, Check, Eye } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeedback } from "@/contexts/FeedbackContext";
@@ -16,61 +15,149 @@ import { ViewReportByToken } from "./ViewReportByToken";
 
 export function ReportsPage() {
   const { session } = useAuth();
+  const ASSOCIADO_REPORT_TYPE: 'ir' = 'ir';
   const [loading, setLoading] = useState(false);
-  const [reportType, setReportType] = useState<'a_pagar' | 'pagos' | 'ir' | 'mensalidades'>('a_pagar');
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear() - 1);
-  const [dateRange, setDateRange] = useState({
-    dataInicio: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    dataFim: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
-  });
-  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [loadingYears, setLoadingYears] = useState(false);
+  const [availableRegularYears, setAvailableRegularYears] = useState<number[]>([]);
+  const [availableBoletoYears, setAvailableBoletoYears] = useState<number[]>([]);
+  const [hasBoletoIr, setHasBoletoIr] = useState(false);
+  const [irMode, setIrMode] = useState<'regular' | 'boleto'>('regular');
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  /*
+    LÓGICA ANTIGA (associado com todos os tipos):
+    const [reportType, setReportType] = useState<'a_pagar' | 'pagos' | 'ir' | 'mensalidades'>('a_pagar');
+    const [dateRange, setDateRange] = useState({
+      dataInicio: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+      dataFim: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+    });
+    const [availableYears, setAvailableYears] = useState<number[]>([]);
+
+    // Também existia loadAvailableYears() para 'mensalidades'
+    // e renderização de botões para: a_pagar, pagos, ir, mensalidades.
+  */
   const [htmlContent, setHtmlContent] = useState("");
   const [filename, setFilename] = useState("");
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const { mostrarToast, mostrarFeedback } = useFeedback();
+  const hasAvailableRegularData = availableRegularYears.length > 0;
+  const hasAvailableBoletoData = availableBoletoYears.length > 0;
+  const availableCalendarYears = irMode === 'boleto' ? availableBoletoYears : availableRegularYears;
+  const hasAvailableIrData = availableCalendarYears.length > 0;
 
-  // Reset selectedYear when reportType changes
-  useEffect(() => {
-    if (reportType === 'ir' || reportType === 'mensalidades') {
-      setSelectedYear(new Date().getFullYear() - 1);
-      if (reportType === 'mensalidades') {
-        loadAvailableYears();
-      }
-    }
-  }, [reportType]);
+  const getEdgeFunctionFallbackMessage = async (error: unknown, defaultMessage: string) => {
+    const errObj = error as { message?: string; context?: Response };
+    const ctx = errObj?.context;
 
-  const loadAvailableYears = async () => {
-    if (!session?.user?.matricula) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('relmensanual')
-        .select('ano')
-        .eq('matfuns', session.user.matricula)
-        .order('ano', { ascending: false });
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const years = [...new Set(data.map(item => item.ano))].sort((a, b) => b - a);
-        setAvailableYears(years);
-        if (years.length > 0 && !years.includes(selectedYear)) {
-          setSelectedYear(years[0]);
+    if (ctx instanceof Response) {
+      let backendMessage = '';
+      try {
+        const body = await ctx.clone().json();
+        backendMessage = body?.error || body?.message || body?.details || '';
+      } catch {
+        try {
+          backendMessage = await ctx.clone().text();
+        } catch {
+          backendMessage = '';
         }
-      } else {
-        setAvailableYears([]);
       }
-    } catch (error) {
-      console.error('Erro ao carregar anos disponíveis:', error);
-      setAvailableYears([]);
+
+      if (ctx.status === 401 || ctx.status === 403) {
+        return 'Sua sessão expirou ou você não tem permissão para gerar este relatório. Faça login novamente.';
+      }
+      if (ctx.status === 404) {
+        return backendMessage || 'Não foram encontrados dados para este associado no ano selecionado.';
+      }
+      if (ctx.status >= 500) {
+        return backendMessage || 'Falha interna ao processar o relatório no servidor. Tente novamente em instantes.';
+      }
+      return backendMessage || `Falha na função de relatório (HTTP ${ctx.status}).`;
     }
+
+    const rawMessage = errObj?.message || String(error || '');
+    if (rawMessage.includes('non-2xx status code')) {
+      return 'A função de geração retornou erro, mas sem detalhe técnico. Verifique período/ano e tente novamente.';
+    }
+
+    return rawMessage || defaultMessage;
   };
+
+  const formatIrYearLabel = (calendarYear: number) => {
+    const exerciseYear = calendarYear + 1;
+    return `${exerciseYear} (Ano calendário ${calendarYear})`;
+  };
+
+  useEffect(() => {
+    const loadAvailableYears = async () => {
+      const matricula = Number(session?.user?.matricula);
+      if (!Number.isFinite(matricula)) {
+        setAvailableRegularYears([]);
+        setAvailableBoletoYears([]);
+        setHasBoletoIr(false);
+        setIrMode('regular');
+        setSelectedYear(null);
+        return;
+      }
+
+      setLoadingYears(true);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-report', {
+          body: {
+            matricula,
+            reportType: 'ir_years',
+            geradoPorMatricula: session?.user?.matricula,
+            geradoPorSigla: session?.sigla,
+          }
+        });
+
+        if (error) throw error;
+
+        const regularYears = Array.isArray(data?.anosRegular)
+          ? data.anosRegular
+              .map((year: number | string | null) => Number(year))
+              .filter((year: number) => Number.isFinite(year) && year > 0)
+              .sort((a: number, b: number) => b - a)
+          : [];
+        const boletoYears = Array.isArray(data?.anosBoleto)
+          ? data.anosBoleto
+              .map((year: number | string | null) => Number(year))
+              .filter((year: number) => Number.isFinite(year) && year > 0)
+              .sort((a: number, b: number) => b - a)
+          : [];
+        const hasBoleto = Boolean(data?.hasBoleto) || boletoYears.length > 0;
+        const nextMode: 'regular' | 'boleto' = regularYears.length > 0 ? 'regular' : (boletoYears.length > 0 ? 'boleto' : 'regular');
+
+        setAvailableRegularYears(regularYears);
+        setAvailableBoletoYears(boletoYears);
+        setHasBoletoIr(hasBoleto);
+        setIrMode(nextMode);
+        const yearsForMode = nextMode === 'boleto' ? boletoYears : regularYears;
+        setSelectedYear(yearsForMode.length > 0 ? yearsForMode[0] : null);
+      } catch (error: unknown) {
+        console.error('Erro ao carregar anos de IR disponíveis:', error);
+        setAvailableRegularYears([]);
+        setAvailableBoletoYears([]);
+        setHasBoletoIr(false);
+        setIrMode('regular');
+        setSelectedYear(null);
+        mostrarFeedback('erro', 'Erro', 'Não foi possível carregar os anos disponíveis para IR');
+      } finally {
+        setLoadingYears(false);
+      }
+    };
+
+    loadAvailableYears();
+  }, [session?.user?.matricula, mostrarFeedback]);
 
   const generateReport = async () => {
     if (!session?.user?.matricula) {
       mostrarFeedback('erro', 'Erro', 'Você precisa estar logado para gerar relatórios');
+      return;
+    }
+    if (!selectedYear) {
+      mostrarFeedback('erro', 'Erro', 'Nenhum ano disponível para gerar a declaração de IR');
       return;
     }
 
@@ -80,9 +167,16 @@ export function ReportsPage() {
       const { data, error } = await supabase.functions.invoke('generate-report', {
         body: {
           matricula: session.user.matricula,
-          dataInicio: reportType === 'ir' || reportType === 'mensalidades' ? `${selectedYear}-01-01` : dateRange.dataInicio,
-          dataFim: reportType === 'ir' || reportType === 'mensalidades' ? `${selectedYear}-12-31` : dateRange.dataFim,
-          reportType: reportType,
+          dataInicio: `${selectedYear}-01-01`,
+          dataFim: `${selectedYear}-12-31`,
+          reportType: ASSOCIADO_REPORT_TYPE,
+          irMode,
+          /*
+            LÓGICA ANTIGA:
+            dataInicio: reportType === 'ir' || reportType === 'mensalidades' ? `${selectedYear}-01-01` : dateRange.dataInicio,
+            dataFim: reportType === 'ir' || reportType === 'mensalidades' ? `${selectedYear}-12-31` : dateRange.dataFim,
+            reportType: reportType,
+          */
           geradoPorMatricula: session.user.matricula,
           geradoPorSigla: session.sigla,
         }
@@ -98,11 +192,8 @@ export function ReportsPage() {
       mostrarToast('sucesso', 'Relatório gerado com sucesso!');
     } catch (error: unknown) {
       console.error('Erro ao gerar relatório:', error);
-      if (error instanceof Error) {
-        mostrarFeedback('erro', 'Erro', error.message || 'Erro ao gerar relatório');
-      } else {
-        mostrarFeedback('erro', 'Erro', 'Erro ao gerar relatório');
-      }
+      const fallbackMessage = await getEdgeFunctionFallbackMessage(error, 'Erro ao gerar relatório');
+      mostrarFeedback('erro', 'Erro', fallbackMessage);
     } finally {
       setLoading(false);
     }
@@ -125,12 +216,49 @@ export function ReportsPage() {
   };
 
   const copyTokenToClipboard = () => {
-    if (generatedToken) {
-      navigator.clipboard.writeText(generatedToken);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      mostrarToast('sucesso', 'Token copiado para a área de transferência!');
-    }
+    const copyWithFallback = (text: string) => {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      textArea.style.top = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const copiedByCommand = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return copiedByCommand;
+    };
+
+    const doCopy = async () => {
+      if (!generatedToken) return;
+
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(generatedToken);
+        } else {
+          const copied = copyWithFallback(generatedToken);
+          if (!copied) throw new Error('Falha ao copiar token');
+        }
+
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        mostrarToast('sucesso', 'Token copiado para a área de transferência!');
+      } catch (error) {
+        const copied = copyWithFallback(generatedToken);
+        if (copied) {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+          mostrarToast('sucesso', 'Token copiado para a área de transferência!');
+          return;
+        }
+
+        console.error('Erro ao copiar token:', error);
+        mostrarFeedback('erro', 'Erro', 'Não foi possível copiar o token automaticamente');
+      }
+    };
+
+    void doCopy();
   };
 
   return (
@@ -161,124 +289,78 @@ export function ReportsPage() {
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Tipo de Relatório</Label>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-                  <Button
-                    variant={reportType === 'a_pagar' ? 'default' : 'outline'}
-                    onClick={() => setReportType('a_pagar')}
-                    className={`h-auto py-3 sm:py-4 ${
-                      reportType === 'a_pagar'
-                        ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                        : 'border-orange-300 text-orange-700 hover:bg-orange-50'
-                    }`}
-                  >
-                    <div className="text-center w-full">
-                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1.5 sm:mb-2" />
-                      <div className="text-xs sm:text-sm font-medium">Procedimentos a Pagar</div>
-                    </div>
-                  </Button>
-                  <Button
-                    variant={reportType === 'pagos' ? 'default' : 'outline'}
-                    onClick={() => setReportType('pagos')}
-                    className={`h-auto py-3 sm:py-4 ${
-                      reportType === 'pagos'
-                        ? 'bg-green-600 hover:bg-green-700 text-white'
-                        : 'border-green-300 text-green-700 hover:bg-green-50'
-                    }`}
-                  >
-                    <div className="text-center w-full">
-                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1.5 sm:mb-2" />
-                      <div className="text-xs sm:text-sm font-medium">Procedimentos Pagos</div>
-                    </div>
-                  </Button>
-                  <Button
-                    variant={reportType === 'ir' ? 'default' : 'outline'}
-                    onClick={() => setReportType('ir')}
-                    className={`h-auto py-3 sm:py-4 ${
-                      reportType === 'ir'
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                        : 'border-blue-300 text-blue-700 hover:bg-blue-50'
-                    }`}
-                  >
-                    <div className="text-center w-full">
-                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1.5 sm:mb-2" />
-                      <div className="text-xs sm:text-sm font-medium">Declaração IR</div>
-                    </div>
-                  </Button>
-                  <Button
-                    variant={reportType === 'mensalidades' ? 'default' : 'outline'}
-                    onClick={() => setReportType('mensalidades')}
-                    className={`h-auto py-3 sm:py-4 ${
-                      reportType === 'mensalidades'
-                        ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                        : 'border-purple-300 text-purple-700 hover:bg-purple-50'
-                    }`}
-                  >
-                    <div className="text-center w-full">
-                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1.5 sm:mb-2" />
-                      <div className="text-xs sm:text-sm font-medium">Mensalidades</div>
-                    </div>
-                  </Button>
-                </div>
-
-                {reportType === 'ir' || reportType === 'mensalidades' ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="ano">Ano de Referência</Label>
-                    {reportType === 'mensalidades' && availableYears.length === 0 ? (
-                      <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
-                        Nenhum ano com mensalidades disponível.
-                      </div>
-                    ) : (
-                      <Select
-                        value={selectedYear.toString()}
-                        onValueChange={(value) => setSelectedYear(parseInt(value))}
-                      >
-                        <SelectTrigger id="ano">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {reportType === 'mensalidades'
-                            ? availableYears.map(year => (
-                                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                              ))
-                            : Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                              ))
-                          }
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {reportType === 'mensalidades' && availableYears.length > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Selecione o ano para gerar a relação de mensalidades de janeiro a dezembro.
-                      </p>
-                    )}
+              {/* LÓGICA ANTIGA:
+                  grid com 4 botões:
+                  - Procedimentos a Pagar
+                  - Procedimentos Pagos
+                  - Declaração IR
+                  - Mensalidades
+                  com setReportType(...) e estilos por tipo.
+              */}
+              <div className={`grid gap-2 sm:gap-3 ${hasBoletoIr ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                <Button
+                  variant={irMode === 'regular' ? "default" : "outline"}
+                  type="button"
+                  className={`h-auto py-3 sm:py-4 ${irMode === 'regular' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+                  disabled={!hasAvailableRegularData}
+                  onClick={() => {
+                    setIrMode('regular');
+                    setSelectedYear(availableRegularYears[0] ?? null);
+                  }}
+                >
+                  <div className="text-center w-full">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1.5 sm:mb-2" />
+                    <div className="text-xs sm:text-sm font-medium">Declaração IR</div>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dataInicio">Data Início</Label>
-                      <Input
-                        id="dataInicio"
-                        type="date"
-                        value={dateRange.dataInicio}
-                        onChange={(e) => setDateRange({ ...dateRange, dataInicio: e.target.value })}
-                      />
+                </Button>
+                {hasBoletoIr && (
+                  <Button
+                    variant={irMode === 'boleto' ? "default" : "outline"}
+                    type="button"
+                    className={`h-auto py-3 sm:py-4 ${irMode === 'boleto' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : ''}`}
+                    disabled={!hasAvailableBoletoData}
+                    onClick={() => {
+                      setIrMode('boleto');
+                      setSelectedYear(availableBoletoYears[0] ?? null);
+                    }}
+                  >
+                    <div className="text-center w-full">
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1.5 sm:mb-2" />
+                      <div className="text-xs sm:text-sm font-medium">IRPF Boletos</div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dataFim">Data Fim (opcional)</Label>
-                      <Input
-                        id="dataFim"
-                        type="date"
-                        value={dateRange.dataFim}
-                        onChange={(e) => setDateRange({ ...dateRange, dataFim: e.target.value })}
-                      />
-                    </div>
-                  </div>
+                  </Button>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ano">Ano de Referência</Label>
+                <Select
+                  value={selectedYear?.toString()}
+                  onValueChange={(value) => setSelectedYear(parseInt(value, 10))}
+                  disabled={loadingYears || !hasAvailableIrData}
+                >
+                  <SelectTrigger id="ano">
+                    <SelectValue placeholder={loadingYears ? "Carregando anos..." : "Sem anos disponíveis"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCalendarYears.map(calendarYear => (
+                      <SelectItem key={calendarYear} value={calendarYear.toString()}>
+                        {formatIrYearLabel(calendarYear)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* LÓGICA ANTIGA:
+                  Se reportType === 'ir' || reportType === 'mensalidades':
+                  - mostrava seletor de ano (mensalidades usava availableYears)
+                  Senão:
+                  - mostrava dataInicio/dataFim (dateRange) para a_pagar/pagos
+              */}
 
                 <Button
                   onClick={generateReport}
-                  disabled={loading || (reportType === 'mensalidades' && availableYears.length === 0)}
+                  disabled={loading || loadingYears || !hasAvailableIrData || !selectedYear}
                   className="w-full gap-2"
                 >
                   {loading ? "Gerando..." : <><Download className="h-4 w-4" /> Gerar Relatório</>}

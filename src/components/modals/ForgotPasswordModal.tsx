@@ -18,6 +18,8 @@ export function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordModalProp
   const [isLoading, setIsLoading] = useState(false);
   const { mostrarToast, mostrarFeedback } = useFeedback();
 
+  const isEmailLike = (value: string) => /[A-Za-z@]/.test(value);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -62,9 +64,6 @@ export function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordModalProp
   };
 
   const formatCPF = (value: string) => {
-    // Se contém @ é email, não formata
-    if (value.includes('@')) return value;
-
     const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 11) {
       return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
@@ -96,9 +95,17 @@ export function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordModalProp
               id="cpfOrEmail"
               type="text"
               placeholder="000.000.000-00 ou seu@email.com"
-              value={cpfOrEmail.includes('@') ? cpfOrEmail : formatCPF(cpfOrEmail)}
-              onChange={(e) => setCpfOrEmail(e.target.value)}
-              maxLength={cpfOrEmail.includes('@') ? undefined : 14}
+              value={isEmailLike(cpfOrEmail) ? cpfOrEmail : formatCPF(cpfOrEmail)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (isEmailLike(value)) {
+                  setCpfOrEmail(value);
+                  return;
+                }
+
+                setCpfOrEmail(value.replace(/\D/g, "").slice(0, 11));
+              }}
+              maxLength={isEmailLike(cpfOrEmail) ? undefined : 14}
               required
               disabled={isLoading}
             />

@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFeedback } from "@/contexts/FeedbackContext";
 import { adminAuth } from "@/services/adminAuth";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
+import { SupportMessageModal } from "./SupportMessageModal";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export function LoginModal({
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showSupportMessage, setShowSupportMessage] = useState(false);
   const { login, session } = useAuth();
   const { mostrarToast, mostrarFeedback } = useFeedback();
   const navigate = useNavigate();
@@ -130,23 +132,44 @@ export function LoginModal({
                 </div>
                 
                 <div>
-                  <p className="font-medium text-foreground">🏢 Associados FUNSEP:</p>
+                  <p className="font-medium text-foreground flex items-center gap-1">
+                    <i className="fas fa-user" aria-hidden="true"></i>
+                    Associados FUNSEP:
+                  </p>
                   <p className="text-muted-foreground">
                     Use seu CPF + senha cadastrada no sistema
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Procure um administrador para cadastrar sua senha de acesso
+                    Caso não receba o e-mail, entre em contato conosco.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              onClose();
+              setShowSupportMessage(true);
+            }}
+            disabled={isLoading}
+          >
+            Enviar mensagem
+          </Button>
         </form>
       </DialogContent>
 
       <ForgotPasswordModal
         isOpen={showForgotPassword}
         onClose={() => setShowForgotPassword(false)}
+      />
+      <SupportMessageModal
+        isOpen={showSupportMessage}
+        onClose={() => setShowSupportMessage(false)}
+        source="LOGIN_MODAL"
       />
     </Dialog>;
 }

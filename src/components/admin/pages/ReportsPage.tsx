@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ChartBar, Download, FileText, Info, Search, X, Hash, Copy, Check, Shield, Eye, Calendar, User } from "lucide-react";
+import { ChartBar, Download, FileText, Info, Search, X, Hash, Copy, Check, Shield, Eye, Calendar, User, Wallet, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,7 @@ interface Beneficiary {
   nome: string;
   cpf: number;
   empresa: number;
+  situacao: number | null;
 }
 
 interface Company {
@@ -44,6 +45,7 @@ interface ReportFilters {
   cpf: string;
   matricula: string;
   empresa: string;
+  status: 'ativos' | 'inativos' | 'todos';
 }
 
 interface ReportInfo {
@@ -53,6 +55,9 @@ interface ReportInfo {
   tipo_relatorio: string;
   data_inicio: string;
   data_fim: string;
+  valor_total_centavos: number;
+  valor_total_formatado: string;
+  detalhes_relatorio?: Record<string, unknown>;
   gerado_em: string;
   visualizacoes: number;
   ultima_visualizacao: string;
@@ -72,6 +77,11 @@ export function ReportsPage() {
   const [reportType, setReportType] = useState<'a_pagar' | 'pagos' | 'ir' | 'mensalidades'>('a_pagar');
   const [selectedBeneficiary, setSelectedBeneficiary] = useState<Beneficiary | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear() - 1);
+  const [irMode, setIrMode] = useState<'regular' | 'boleto'>('regular');
+  const [availableIrRegularYears, setAvailableIrRegularYears] = useState<number[]>([]);
+  const [availableIrBoletoYears, setAvailableIrBoletoYears] = useState<number[]>([]);
+  const [loadingIrYears, setLoadingIrYears] = useState(false);
+  const [loadingMensalidadesYears, setLoadingMensalidadesYears] = useState(false);
   const [dateRange, setDateRange] = useState({
     dataInicio: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     dataFim: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
@@ -81,7 +91,8 @@ export function ReportsPage() {
     nome: '',
     cpf: '',
     matricula: '',
-    empresa: ''
+    empresa: '',
+    status: 'ativos'
   });
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [tokenModalOpen, setTokenModalOpen] = useState(false);
@@ -92,6 +103,44 @@ export function ReportsPage() {
   const [reportFilename, setReportFilename] = useState("");
   const [loadingTokenReport, setLoadingTokenReport] = useState(false);
   const { mostrarToast, mostrarFeedback } = useFeedback();
+  const availableIrYears = irMode === 'boleto' ? availableIrBoletoYears : availableIrRegularYears;
+
+  const getEdgeFunctionFallbackMessage = async (error: unknown, defaultMessage: string) => {
+    const errObj = error as { message?: string; context?: Response };
+    const ctx = errObj?.context;
+
+    if (ctx instanceof Response) {
+      let backendMessage = '';
+      try {
+        const body = await ctx.clone().json();
+        backendMessage = body?.error || body?.message || body?.details || '';
+      } catch {
+        try {
+          backendMessage = await ctx.clone().text();
+        } catch {
+          backendMessage = '';
+        }
+      }
+
+      if (ctx.status === 401 || ctx.status === 403) {
+        return 'Sua sessão expirou ou você não tem permissão para gerar este relatório.';
+      }
+      if (ctx.status === 404) {
+        return backendMessage || 'Não foram encontrados dados para o período selecionado.';
+      }
+      if (ctx.status >= 500) {
+        return backendMessage || 'Erro interno no servidor ao gerar o relatório. Tente novamente em instantes.';
+      }
+      return backendMessage || `Falha na função de relatório (HTTP ${ctx.status}).`;
+    }
+
+    const rawMessage = errObj?.message || String(error || '');
+    if (rawMessage.includes('non-2xx status code')) {
+      return 'A função de geração retornou erro sem detalhe técnico. Verifique os filtros e tente novamente.';
+    }
+
+    return rawMessage || defaultMessage;
+  };
 
   useEffect(() => {
     loadCompanies();
@@ -116,9 +165,11 @@ export function ReportsPage() {
   const searchBeneficiaries = async () => {
     setLoading(true);
     try {
+      const hasSearchByPerson = Boolean(filters.nome.trim() || filters.cpf.trim() || filters.matricula.trim());
+
       let query = supabase
         .from('cadben')
-        .select('matricula, nome, cpf, empresa')
+        .select('matricula, nome, cpf, empresa, situacao')
         .order('nome');
 
       if (filters.nome) {
@@ -132,6 +183,15 @@ export function ReportsPage() {
       }
       if (filters.empresa) {
         query = query.eq('empresa', parseInt(filters.empresa));
+      }
+
+      // Por padrão listar apenas ativos (1 e 2). Em pesquisa por nome/cpf/matrícula, mostrar todos.
+      if (!hasSearchByPerson) {
+        if (filters.status === 'ativos') {
+          query = query.in('situacao', [1, 2]);
+        } else if (filters.status === 'inativos') {
+          query = query.eq('situacao', 3);
+        }
       }
 
       const { data, error } = await query.limit(100);
@@ -151,9 +211,14 @@ export function ReportsPage() {
       nome: '',
       cpf: '',
       matricula: '',
-      empresa: ''
+      empresa: '',
+      status: 'ativos'
     });
     searchBeneficiaries();
+  };
+
+  const getBeneficiaryStatus = (situacao: number | null | undefined) => {
+    return situacao === 1 || situacao === 2 ? 'ATIVO' : 'INATIVO';
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -253,8 +318,37 @@ export function ReportsPage() {
     return company?.nome || 'N/A';
   };
 
+  const copyTextToClipboard = async (text: string) => {
+    const copyWithFallback = () => {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      textArea.style.top = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const copied = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return copied;
+    };
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+
+      return copyWithFallback();
+    } catch (error) {
+      console.error('Erro ao copiar usando Clipboard API:', error);
+      return copyWithFallback();
+    }
+  };
+
   const loadAvailableYears = async (matricula: number) => {
     try {
+      setLoadingMensalidadesYears(true);
       const { data, error } = await supabase
         .from('relmensanual')
         .select('ano')
@@ -275,6 +369,67 @@ export function ReportsPage() {
     } catch (error) {
       console.error('Erro ao carregar anos disponíveis:', error);
       setAvailableYears([]);
+    } finally {
+      setLoadingMensalidadesYears(false);
+    }
+  };
+
+  const loadAvailableIrYears = async (matricula: number) => {
+    try {
+      setLoadingIrYears(true);
+      const adminSessionStr = localStorage.getItem('admin_session');
+      let geradoPorSigla = null;
+      if (adminSessionStr) {
+        const sessionData = JSON.parse(adminSessionStr);
+        geradoPorSigla = sessionData.sigla;
+      }
+
+      const { data, error } = await supabase.functions.invoke('generate-report', {
+        body: {
+          matricula,
+          reportType: 'ir_years',
+          geradoPorSigla
+        }
+      });
+
+      if (error) throw error;
+
+      const regularYears = Array.isArray(data?.anosRegular)
+        ? data.anosRegular
+            .map((year: number | string | null) => Number(year))
+            .filter((year: number) => Number.isFinite(year) && year > 0)
+            .sort((a: number, b: number) => b - a)
+        : [];
+
+      const boletoYears = Array.isArray(data?.anosBoleto)
+        ? data.anosBoleto
+            .map((year: number | string | null) => Number(year))
+            .filter((year: number) => Number.isFinite(year) && year > 0)
+            .sort((a: number, b: number) => b - a)
+        : [];
+
+      setAvailableIrRegularYears(regularYears);
+      setAvailableIrBoletoYears(boletoYears);
+
+      const nextMode: 'regular' | 'boleto' = regularYears.length > 0 ? 'regular' : (boletoYears.length > 0 ? 'boleto' : 'regular');
+      const yearsForMode = nextMode === 'boleto' ? boletoYears : regularYears;
+      const firstYear = yearsForMode[0];
+
+      setIrMode(nextMode);
+      if (firstYear) {
+        setSelectedYear(firstYear);
+        setDateRange({
+          dataInicio: `${firstYear}-01-01`,
+          dataFim: `${firstYear}-12-31`
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar anos de IR disponíveis:', error);
+      setAvailableIrRegularYears([]);
+      setAvailableIrBoletoYears([]);
+      mostrarFeedback('erro', 'Erro', 'Não foi possível carregar os anos disponíveis de IR');
+    } finally {
+      setLoadingIrYears(false);
     }
   };
 
@@ -282,8 +437,19 @@ export function ReportsPage() {
     setSelectedBeneficiary(beneficiary);
     setReportType(type);
 
+    if (type === 'ir') {
+      setReportModalOpen(true);
+      setAvailableIrRegularYears([]);
+      setAvailableIrBoletoYears([]);
+      void loadAvailableIrYears(beneficiary.matricula);
+      return;
+    }
+
     if (type === 'mensalidades') {
-      await loadAvailableYears(beneficiary.matricula);
+      setReportModalOpen(true);
+      setAvailableYears([]);
+      void loadAvailableYears(beneficiary.matricula);
+      return;
     }
 
     if (type === 'ir' || type === 'mensalidades') {
@@ -363,6 +529,7 @@ export function ReportsPage() {
           dataInicio: dateRange.dataInicio,
           dataFim: dateRange.dataFim,
           reportType: reportType,
+          irMode: reportType === 'ir' ? irMode : undefined,
           geradoPorSigla: geradoPorSigla, // Enviando sigla para validação
         }
       });
@@ -375,6 +542,14 @@ export function ReportsPage() {
       console.log('Resposta da função edge:', data);
 
       const { html, filename, token } = data;
+      const extractedToken = (() => {
+        if (token) return token;
+        const tokenLabelIndex = html.indexOf('Token de Validação');
+        if (tokenLabelIndex === -1) return null;
+        const tokenSlice = html.slice(tokenLabelIndex, tokenLabelIndex + 600);
+        const uuidMatch = tokenSlice.match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
+        return uuidMatch ? uuidMatch[0] : null;
+      })();
       
       // Salvar o token gerado
       if (token) {
@@ -902,6 +1077,18 @@ export function ReportsPage() {
         const pageText = `${pageNum}/${totalPages}`;
         // Posição: canto inferior direito (210mm - margem, 297mm - margem)
         pdf.text(pageText, 210 - marginLeft, 297 - marginLeft, { align: 'right' });
+
+        // Token como texto real no PDF (selecionável/copiável), na última página
+        if (extractedToken && i === totalPages - 1) {
+          const validationUrl = `https://funsep.com.br/valida-token?=${extractedToken}`;
+          const tokenBoxY = 285;
+          const tokenBoxHeight = 8;
+          pdf.setFillColor(255, 255, 255);
+          pdf.rect(marginLeft, tokenBoxY, 185, tokenBoxHeight, 'F');
+          pdf.setFontSize(8);
+          pdf.setTextColor(30, 30, 30);
+          pdf.text(`Validar: ${validationUrl}`, marginLeft + 1, tokenBoxY + 5.2, { maxWidth: 182 });
+        }
       }
 
       pdf.save(filename);
@@ -915,8 +1102,7 @@ export function ReportsPage() {
       }
     } catch (error: unknown) {
       console.error('Erro completo ao gerar relatório:', error);
-
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = await getEdgeFunctionFallbackMessage(error, 'Erro desconhecido');
 
       // Verificar se é um erro de dados não encontrados
       if (errorMessage.includes('não encontrado') ||
@@ -924,7 +1110,7 @@ export function ReportsPage() {
           errorMessage.includes('404')) {
         mostrarFeedback('aviso', 'Sem dados', 'Nenhum procedimento encontrado para o período selecionado. Tente outro período com dados cadastrados.');
       } else {
-        mostrarFeedback('erro', 'Erro', `Erro ao gerar relatório: ${errorMessage || 'Erro desconhecido'}`);
+        mostrarFeedback('erro', 'Erro', `Erro ao gerar relatório: ${errorMessage}`);
       }
     } finally {
       // Garantir que o iframe seja removido
@@ -977,7 +1163,7 @@ export function ReportsPage() {
           <CardTitle className="text-lg sm:text-xl">Buscar Associados</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="nome">Nome</Label>
               <Input
@@ -1025,7 +1211,26 @@ export function ReportsPage() {
                 ))}
               </select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Situação</Label>
+              <select
+                id="status"
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value as ReportFilters['status'] })}
+                onKeyDown={handleKeyPress}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="ativos">Ativos</option>
+                <option value="inativos">Inativos</option>
+                <option value="todos">Todos</option>
+              </select>
+            </div>
           </div>
+          {(filters.nome.trim() || filters.cpf.trim() || filters.matricula.trim()) && (
+            <p className="text-xs text-muted-foreground">
+              Pesquisa por nome/CPF/matrícula ativa: mostrando ativos e inativos.
+            </p>
+          )}
           <div className="flex flex-col sm:flex-row gap-2">
             <Button onClick={searchBeneficiaries} disabled={loading} className="gap-2 w-full sm:w-auto">
               <Search className="h-4 w-4" />
@@ -1054,6 +1259,7 @@ export function ReportsPage() {
                     <TableRow>
                       <TableHead>Matrícula</TableHead>
                       <TableHead>Nome</TableHead>
+                      <TableHead>Situação</TableHead>
                       <TableHead>CPF</TableHead>
                       <TableHead>Empresa</TableHead>
                       <TableHead>Procedimentos a Pagar</TableHead>
@@ -1067,6 +1273,7 @@ export function ReportsPage() {
                     <TableRow>
                       <TableCell><div className="skeleton-shimmer h-4 w-16 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-48 rounded"></div></TableCell>
+                      <TableCell><div className="skeleton-shimmer h-6 w-16 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-24 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-32 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-8 w-20 rounded"></div></TableCell>
@@ -1078,6 +1285,7 @@ export function ReportsPage() {
                     <TableRow>
                       <TableCell><div className="skeleton-shimmer h-4 w-16 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-48 rounded"></div></TableCell>
+                      <TableCell><div className="skeleton-shimmer h-6 w-16 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-24 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-32 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-8 w-20 rounded"></div></TableCell>
@@ -1089,6 +1297,7 @@ export function ReportsPage() {
                     <TableRow>
                       <TableCell><div className="skeleton-shimmer h-4 w-16 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-48 rounded"></div></TableCell>
+                      <TableCell><div className="skeleton-shimmer h-6 w-16 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-24 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-32 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-8 w-20 rounded"></div></TableCell>
@@ -1100,6 +1309,7 @@ export function ReportsPage() {
                     <TableRow>
                       <TableCell><div className="skeleton-shimmer h-4 w-16 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-48 rounded"></div></TableCell>
+                      <TableCell><div className="skeleton-shimmer h-6 w-16 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-24 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-32 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-8 w-20 rounded"></div></TableCell>
@@ -1111,6 +1321,7 @@ export function ReportsPage() {
                     <TableRow>
                       <TableCell><div className="skeleton-shimmer h-4 w-16 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-48 rounded"></div></TableCell>
+                      <TableCell><div className="skeleton-shimmer h-6 w-16 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-24 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-4 w-32 rounded"></div></TableCell>
                       <TableCell><div className="skeleton-shimmer h-8 w-20 rounded"></div></TableCell>
@@ -1211,6 +1422,7 @@ export function ReportsPage() {
                     <TableRow>
                       <TableHead>Matrícula</TableHead>
                       <TableHead>Nome</TableHead>
+                      <TableHead>Situação</TableHead>
                       <TableHead>CPF</TableHead>
                       <TableHead>Empresa</TableHead>
                       <TableHead>Procedimentos a Pagar</TableHead>
@@ -1226,6 +1438,11 @@ export function ReportsPage() {
                         <TableRow key={beneficiary.matricula}>
                           <TableCell className="font-medium">{beneficiary.matricula}</TableCell>
                           <TableCell className="font-medium">{beneficiary.nome}</TableCell>
+                          <TableCell>
+                            <Badge variant={getBeneficiaryStatus(beneficiary.situacao) === 'ATIVO' ? 'default' : 'destructive'}>
+                              {getBeneficiaryStatus(beneficiary.situacao)}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="font-mono text-xs">{formatCPF(beneficiary.cpf)}</TableCell>
                           <TableCell>
                             <span className="text-sm text-muted-foreground truncate block max-w-[120px]" title={getCompanyName(beneficiary.empresa)}>
@@ -1287,7 +1504,7 @@ export function ReportsPage() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                           <ChartBar className="h-12 w-12 mx-auto mb-4 opacity-30" />
                           Nenhum associado encontrado.
                           <br />
@@ -1311,6 +1528,9 @@ export function ReportsPage() {
                               <p className="font-semibold text-sm truncate">{beneficiary.nome}</p>
                               <p className="text-xs text-muted-foreground">Mat: {beneficiary.matricula}</p>
                             </div>
+                            <Badge variant={getBeneficiaryStatus(beneficiary.situacao) === 'ATIVO' ? 'default' : 'destructive'}>
+                              {getBeneficiaryStatus(beneficiary.situacao)}
+                            </Badge>
                           </div>
                           <p className="text-xs font-mono text-muted-foreground">{formatCPF(beneficiary.cpf)}</p>
                           <p className="text-xs text-muted-foreground truncate">
@@ -1370,7 +1590,10 @@ export function ReportsPage() {
 
       {/* Modal de Período para Relatórios */}
       <Dialog open={reportModalOpen} onOpenChange={setReportModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className="sm:max-w-md"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-lg">Selecionar Período</DialogTitle>
             <DialogDescription className="text-sm">
@@ -1383,10 +1606,90 @@ export function ReportsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {reportType === 'ir' || reportType === 'mensalidades' ? (
+            {reportType === 'ir' ? (
+              loadingIrYears ? (
+                <div className="py-10 flex flex-col items-center justify-center gap-3 text-blue-600">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <p className="text-sm">Carregando dados de IR...</p>
+                </div>
+              ) : (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Base do IR</Label>
+                <div className={`grid gap-2 ${availableIrBoletoYears.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  <Button
+                    type="button"
+                    variant={irMode === 'regular' ? "default" : "outline"}
+                    onClick={() => {
+                      setIrMode('regular');
+                      const firstYear = availableIrRegularYears[0];
+                      if (firstYear) {
+                        setSelectedYear(firstYear);
+                        setDateRange({ dataInicio: `${firstYear}-01-01`, dataFim: `${firstYear}-12-31` });
+                      }
+                    }}
+                    disabled={availableIrRegularYears.length === 0}
+                  >
+                    Declaração IR
+                  </Button>
+                  {availableIrBoletoYears.length > 0 && (
+                    <Button
+                      type="button"
+                      variant={irMode === 'boleto' ? "default" : "outline"}
+                      onClick={() => {
+                        setIrMode('boleto');
+                        const firstYear = availableIrBoletoYears[0];
+                        if (firstYear) {
+                          setSelectedYear(firstYear);
+                          setDateRange({ dataInicio: `${firstYear}-01-01`, dataFim: `${firstYear}-12-31` });
+                        }
+                      }}
+                      disabled={availableIrBoletoYears.length === 0}
+                    >
+                      IRPF Boletos
+                    </Button>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ano">Ano:</Label>
+                  {availableIrYears.length === 0 ? (
+                    <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
+                      Nenhum ano de IR disponível para este associado.
+                    </div>
+                  ) : (
+                    <select
+                      id="ano"
+                      value={selectedYear}
+                      onChange={(e) => {
+                        const ano = parseInt(e.target.value, 10);
+                        setSelectedYear(ano);
+                        setDateRange({
+                          dataInicio: `${ano}-01-01`,
+                          dataFim: `${ano}-12-31`
+                        });
+                      }}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {availableIrYears.map(year => (
+                        <option key={year} value={year}>
+                          {`${year + 1} (ano calendário ${year})`}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+              )
+            ) : reportType === 'mensalidades' ? (
+              loadingMensalidadesYears ? (
+                <div className="py-10 flex flex-col items-center justify-center gap-3 text-blue-600">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <p className="text-sm">Carregando dados de mensalidades...</p>
+                </div>
+              ) : (
               <div className="space-y-2">
                 <Label htmlFor="ano">Ano:</Label>
-                {reportType === 'mensalidades' && availableYears.length === 0 ? (
+                {availableYears.length === 0 ? (
                   <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
                     Nenhum ano com mensalidades disponível para este associado.
                   </div>
@@ -1404,21 +1707,15 @@ export function ReportsPage() {
                     }}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {reportType === 'mensalidades'
-                      ? availableYears.map(year => (
-                          <option key={year} value={year}>
-                            {year}
-                          </option>
-                        ))
-                      : Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 1 - i).map(year => (
-                          <option key={year} value={year}>
-                            {`${year + 1} (ano calendário ${year})`}
-                          </option>
-                        ))
-                    }
+                    {availableYears.map(year => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
                   </select>
-                )}
-              </div>
+                  )}
+                </div>
+              )
             ) : (
               <>
                 <div className="space-y-2">
@@ -1463,7 +1760,13 @@ export function ReportsPage() {
             <Button
               onClick={generateReport}
               className="w-full gap-2"
-              disabled={generatingReport || (reportType === 'mensalidades' && availableYears.length === 0)}
+              disabled={
+                generatingReport ||
+                (reportType === 'ir' && loadingIrYears) ||
+                (reportType === 'mensalidades' && loadingMensalidadesYears) ||
+                (reportType === 'mensalidades' && availableYears.length === 0) ||
+                (reportType === 'ir' && availableIrYears.length === 0)
+              }
             >
               {generatingReport ? "Gerando..." : <><Download className="h-4 w-4" /> Gerar Relatório</>}
             </Button>
@@ -1496,10 +1799,14 @@ export function ReportsPage() {
                   size="icon"
                   variant="outline"
                   className="flex-shrink-0"
-                  onClick={() => {
+                  onClick={async () => {
                     if (generatedToken) {
-                      navigator.clipboard.writeText(generatedToken);
-                      mostrarToast('sucesso', 'Token copiado para a área de transferência!');
+                      const copied = await copyTextToClipboard(generatedToken);
+                      if (copied) {
+                        mostrarToast('sucesso', 'Token copiado para a área de transferência!');
+                      } else {
+                        mostrarFeedback('erro', 'Erro', 'Não foi possível copiar o token automaticamente');
+                      }
                     }
                   }}
                 >
@@ -1620,6 +1927,14 @@ export function ReportsPage() {
                     <div className="p-4 rounded-lg border border-gray-100 bg-gray-50/50">
                       <div className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">Gerado em</div>
                       <div className="text-sm text-foreground font-medium">{formatDateTime(reportInfo.gerado_em)}</div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-emerald-100 bg-emerald-50/50">
+                      <div className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-2">Valor total</div>
+                      <div className="flex items-center gap-2">
+                        <Wallet className="h-4 w-4 text-emerald-600" />
+                        <span className="font-semibold text-foreground">{reportInfo.valor_total_formatado}</span>
+                      </div>
                     </div>
 
                     <div className="p-4 rounded-lg border border-teal-100 bg-teal-50/50">

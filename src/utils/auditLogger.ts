@@ -33,12 +33,13 @@ const truncate = (value?: string | null) => {
 
 const getBaseMeta = () => {
   const hashPath = window.location.hash ? window.location.hash.replace("#", "") : "";
+  const pathname = window.location.pathname;
   return {
     user_agent: navigator.userAgent,
     platform: navigator.platform,
     url: window.location.href,
     referrer: document.referrer || null,
-    path: hashPath || window.location.pathname
+    path: pathname || hashPath
   };
 };
 

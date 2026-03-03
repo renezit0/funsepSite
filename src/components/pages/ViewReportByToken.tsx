@@ -1,14 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Download, Eye, FileText, User, Calendar, Hash } from "lucide-react";
+import { Download, Eye, FileText, User, Calendar, Hash, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeedback } from "@/contexts/FeedbackContext";
 import { generatePDFFromHTML } from '@/utils/generatePDFFromHTML';
+import { useLocation, useParams } from "react-router-dom";
 
 interface ReportInfo {
   matricula: number;
@@ -17,6 +18,9 @@ interface ReportInfo {
   tipo_relatorio: string;
   data_inicio: string;
   data_fim: string;
+  valor_total_centavos: number;
+  valor_total_formatado: string;
+  detalhes_relatorio?: Record<string, unknown>;
   gerado_em: string;
   visualizacoes: number;
   ultima_visualizacao: string;
@@ -28,12 +32,15 @@ interface ReportInfo {
 }
 
 export function ViewReportByToken() {
+  const { token: routeToken } = useParams<{ token: string }>();
+  const location = useLocation();
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [reportInfo, setReportInfo] = useState<ReportInfo | null>(null);
   const [htmlContent, setHtmlContent] = useState("");
   const [filename, setFilename] = useState("");
   const { mostrarToast, mostrarFeedback } = useFeedback();
+  const [autoLoadedByLink, setAutoLoadedByLink] = useState(false);
 
   const formatCPF = (cpf: string | number) => {
     const cpfStr = cpf.toString().padStart(11, '0');
@@ -107,6 +114,24 @@ export function ViewReportByToken() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (autoLoadedByLink) return;
+
+    const params = new URLSearchParams(location.search);
+    const queryToken = params.get('token') || params.get('') || '';
+    const incomingToken = (routeToken || queryToken || '').trim();
+
+    if (!incomingToken) return;
+
+    setToken(incomingToken);
+    setAutoLoadedByLink(true);
+  }, [routeToken, location.search, autoLoadedByLink]);
+
+  useEffect(() => {
+    if (!autoLoadedByLink || !token.trim()) return;
+    void viewReport();
+  }, [autoLoadedByLink, token]);
 
   const downloadPDF = async () => {
     if (!htmlContent) return;
@@ -207,6 +232,14 @@ export function ViewReportByToken() {
                     <div className="p-4 rounded-lg border border-gray-100 bg-gray-50/50">
                       <div className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">Gerado em</div>
                       <div className="text-sm text-foreground font-medium">{formatDateTime(reportInfo.gerado_em)}</div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-emerald-100 bg-emerald-50/50">
+                      <div className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-2">Valor total</div>
+                      <div className="flex items-center gap-2">
+                        <Wallet className="h-4 w-4 text-emerald-600" />
+                        <span className="font-semibold text-foreground">{reportInfo.valor_total_formatado}</span>
+                      </div>
                     </div>
 
                     <div className="p-4 rounded-lg border border-teal-100 bg-teal-50/50">

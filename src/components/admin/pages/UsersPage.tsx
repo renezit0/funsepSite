@@ -19,6 +19,8 @@ interface User {
   secao: string;
   senha: string;
   status: string;
+  cpf: string | null;
+  telefone: string | null;
 }
 
 export function UsersPage() {
@@ -63,7 +65,7 @@ export function UsersPage() {
     try {
       const { data, error } = await supabase
         .from('usuarios')
-        .select('sigla, nome, cargo, secao, senha, status')
+        .select('sigla, nome, cargo, secao, senha, status, cpf, telefone')
         .order('nome');
 
       if (error) throw error;
@@ -194,6 +196,9 @@ export function UsersPage() {
                       </div>
                       <div>
                         <strong>Seção:</strong> {user.secao || '-'}
+                      </div>
+                      <div>
+                        <strong>Telefone:</strong> {user.telefone || '-'}
                       </div>
                     </div>
                     

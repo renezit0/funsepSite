@@ -11,7 +11,8 @@ interface ReportData {
   matricula: number
   dataInicio: string
   dataFim: string
-  reportType: 'a_pagar' | 'pagos' | 'ir' | 'mensalidades'
+  reportType: 'a_pagar' | 'pagos' | 'ir' | 'mensalidades' | 'ir_years'
+  irMode?: 'regular' | 'boleto'
   geradoPorMatricula?: number
   geradoPorSigla?: string
 }
@@ -142,6 +143,12 @@ function parseCurrencyToCents(value: string | number | null | undefined): number
   return Number.isFinite(inteiro) ? inteiro : 0;
 }
 
+function safeNumber(value: string | number | null | undefined): number {
+  if (value === null || value === undefined) return 0
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  return parseNumberBR(String(value))
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -158,7 +165,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { matricula, dataInicio, dataFim, reportType, geradoPorMatricula, geradoPorSigla }: ReportData = await req.json()
+    const { matricula, dataInicio, dataFim, reportType, irMode, geradoPorMatricula, geradoPorSigla }: ReportData = await req.json()
 
     console.log('Iniciando geração de relatório:', { matricula, dataInicio, dataFim, reportType, geradoPorMatricula, geradoPorSigla })
 
@@ -225,6 +232,56 @@ Deno.serve(async (req) => {
 
     // validatedSigla e validatedMatricula já foram definidos acima
 
+    if (reportType === 'ir_years') {
+      const anosRegularSet = new Set<number>()
+      const anosBoletoSet = new Set<number>()
+      const tabelasIR = [
+        { nome: 'irpfd', tipo: 'regular' as const },
+        { nome: 'irpft', tipo: 'regular' as const },
+        { nome: 'irpfdb', tipo: 'boleto' as const },
+        { nome: 'irpftb', tipo: 'boleto' as const },
+      ]
+
+      for (const tabela of tabelasIR) {
+        const { data, error } = await supabase
+          .from(tabela.nome)
+          .select('ano')
+          .eq('matricula', matricula)
+
+        if (error) {
+          console.error(`Erro ao buscar anos em ${tabela.nome}:`, error)
+          continue
+        }
+
+        for (const item of data || []) {
+          const ano = Number(item?.ano)
+          if (Number.isFinite(ano) && ano > 0) {
+            if (tabela.tipo === 'boleto') {
+              anosBoletoSet.add(ano)
+            } else {
+              anosRegularSet.add(ano)
+            }
+          }
+        }
+      }
+
+      const anosRegular = Array.from(anosRegularSet).sort((a, b) => b - a)
+      const anosBoleto = Array.from(anosBoletoSet).sort((a, b) => b - a)
+      const anos = Array.from(new Set([...anosRegular, ...anosBoleto])).sort((a, b) => b - a)
+
+      return new Response(JSON.stringify({
+        anos,
+        anosRegular,
+        anosBoleto,
+        hasBoleto: anosBoleto.length > 0
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        }
+      })
+    }
+
     // 1. Buscar beneficiário
     const { data: beneficiary, error: beneficiaryError } = await supabase
       .from('cadben')
@@ -244,7 +301,7 @@ Deno.serve(async (req) => {
     if (reportType === 'ir') {
       const anoCalendario = parseInt(dataInicio.split('-')[0]) // Ano selecionado na interface
       const anoExercicio = anoCalendario + 1 // Ano do exercício (sempre ano+1)
-      return await generateIRReport(supabase, beneficiary, matricula, anoCalendario, anoExercicio, validatedMatricula, validatedSigla)
+      return await generateIRReport(supabase, beneficiary, matricula, anoCalendario, anoExercicio, irMode, validatedMatricula, validatedSigla)
     }
 
     if (reportType === 'mensalidades') {
@@ -383,6 +440,15 @@ Deno.serve(async (req) => {
       participacao: totaisTitular.participacao + totaisDependentes.participacao,
       quantidade: totaisTitular.quantidade + totaisDependentes.quantidade
     }
+    const valorTotalCentavos = totaisGeral.participacao
+    const detalhesRelatorio = {
+      metrica_valor_total: 'participacao',
+      totais_centavos: {
+        titular: totaisTitular,
+        dependentes: totaisDependentes,
+        geral: totaisGeral,
+      }
+    }
 
     // 9. Gerar HTML do relatório
     const htmlContent = generateReportHTML(
@@ -399,7 +465,6 @@ Deno.serve(async (req) => {
 
     // 10. Gerar token único e salvar no banco
     const token = crypto.randomUUID()
-    
     // Adicionar token ao HTML antes de salvar
     const htmlWithToken = htmlContent.replace(
       '</body>',
@@ -419,6 +484,8 @@ Deno.serve(async (req) => {
         data_fim: dataFimFinal,
         gerado_por_matricula: validatedMatricula,
         gerado_por_sigla: validatedSigla,
+        valor_total_centavos: valorTotalCentavos,
+        detalhes_relatorio: detalhesRelatorio,
         html_content: htmlWithToken,
         filename
       })
@@ -452,90 +519,89 @@ Deno.serve(async (req) => {
   }
 })
 
-async function generateIRReport(supabase: any, beneficiary: any, matricula: number, anoCalendario: number, anoExercicio: number, geradoPorMatricula?: number, geradoPorSigla?: string) {
+async function generateIRReport(
+  supabase: any,
+  beneficiary: any,
+  matricula: number,
+  anoCalendario: number,
+  anoExercicio: number,
+  irMode?: 'regular' | 'boleto',
+  geradoPorMatricula?: number,
+  geradoPorSigla?: string
+) {
   try {
     console.log('Gerando relatório IR para:', { matricula, anoCalendario, anoExercicio })
-    
-    // Estratégia: testar uma tabela por vez e usar apenas UMA fonte de dados
+    const isTitularRegistro = (item: any) =>
+      item.nrodep === '0' || item.nrodep === 0 || !item.nrodep || item.nrodep === ''
+
+    const regularSources = [
+      {
+        table: 'irpfd',
+        label: 'IRPFD',
+        detailTable: 'irpfd',
+        parseGuia: (item: any) => parseCurrencyToCents(item.vlguia)
+      },
+      {
+        table: 'irpft',
+        label: 'IRPFT',
+        detailTable: 'irpfd',
+        parseGuia: (item: any) => parseCurrencyToCents(item.vlguia) || parseCurrencyToCents(item.guiat)
+      }
+    ]
+    const boletoSources = [
+      {
+        table: 'irpfdb',
+        label: 'IRPFDB',
+        detailTable: 'irpfdb',
+        parseGuia: (item: any) => parseCurrencyToCents(item.vlguia)
+      },
+      {
+        table: 'irpftb',
+        label: 'IRPFTB',
+        detailTable: 'irpfdb',
+        parseGuia: (item: any) => parseCurrencyToCents(item.vlguia) || parseCurrencyToCents(item.guiat)
+      }
+    ]
+    const irSources = irMode === 'boleto'
+      ? [...boletoSources, ...regularSources]
+      : [...regularSources, ...boletoSources]
+
     let totalTitularMensalidade = 0
     let totalTitularGuia = 0
     let fonteDados = ''
-    
-    // PRIMEIRA TENTATIVA: Buscar na tabela IRPFD (mais comum)
-    try {
-      const { data: irTitularIRPFD, error: irTitularIRPFDError } = await supabase
-        .from('irpfd')
-      .select('*')
-      .eq('matricula', matricula)
-      .eq('ano', anoCalendario) // Buscar pelo ano calendário
-      
-      console.log('IRPFD TODOS OS DADOS - Dados encontrados:', irTitularIRPFD)
-      console.log('IRPFD - Quantidade de registros:', irTitularIRPFD?.length)
-      
-      if (!irTitularIRPFDError && irTitularIRPFD && irTitularIRPFD.length > 0) {
-        // Filtrar apenas o titular (nrodep = "0" ou vazio)
-        const dadosTitular = irTitularIRPFD.filter((item: any) => 
-          item.nrodep === '0' || item.nrodep === 0 || !item.nrodep || item.nrodep === ''
-        )
-        
-        console.log('IRPFD - Dados do titular filtrados:', dadosTitular)
-        
-        // Usar dados do IRPFD
-        totalTitularMensalidade = dadosTitular.reduce((acc: number, item: any) => {
-          const vlmen = parseCurrencyToCents(item.vlmen) || parseCurrencyToCents(item.ment)
-          console.log('IRPFD - Mensalidade item:', vlmen, 'nrodep:', item.nrodep)
-          return acc + vlmen
-        }, 0)
-        
-        totalTitularGuia = dadosTitular.reduce((acc: number, item: any) => {
-          const vlguia = parseCurrencyToCents(item.vlguia)
-          console.log('IRPFD - Guia item:', vlguia, 'nrodep:', item.nrodep)
-          return acc + vlguia
-        }, 0)
-        
-        fonteDados = 'IRPFD'
-        console.log('Usando dados do IRPFD - Mensalidade:', totalTitularMensalidade, 'Guia:', totalTitularGuia)
-      }
-    } catch (err) {
-      console.error('Erro na consulta IRPFD titular:', err)
-    }
-    
-    // SEGUNDA TENTATIVA: Se não encontrou no IRPFD, tentar IRPFT
-    if (totalTitularMensalidade === 0 && totalTitularGuia === 0) {
+    let tabelaDependentes = 'irpfd'
+
+    for (const source of irSources) {
       try {
-        const { data: irTitular, error: irTitularError } = await supabase
-          .from('irpft')
+        const { data: irData, error: irError } = await supabase
+          .from(source.table)
           .select('*')
           .eq('matricula', matricula)
-          .eq('ano', anoCalendario) // Buscar pelo ano calendário
-        
-        console.log('IRPFT TODOS OS DADOS - Dados encontrados:', irTitular)
-        
-        if (!irTitularError && irTitular && irTitular.length > 0) {
-          // Filtrar apenas o titular
-          const dadosTitular = irTitular.filter((item: any) => 
-            item.nrodep === '0' || item.nrodep === 0 || !item.nrodep || item.nrodep === ''
-          )
-          
-          console.log('IRPFT - Dados do titular filtrados:', dadosTitular)
-          
-          totalTitularMensalidade = dadosTitular.reduce((acc: number, item: any) => {
-            const vlmen = parseCurrencyToCents(item.vlmen) || parseCurrencyToCents(item.ment)
-            console.log('IRPFT - Mensalidade item:', vlmen, 'nrodep:', item.nrodep)
-            return acc + vlmen
-          }, 0)
-          
-          totalTitularGuia = dadosTitular.reduce((acc: number, item: any) => {
-            const vlguia = parseCurrencyToCents(item.vlguia) || parseCurrencyToCents(item.guiat)
-            console.log('IRPFT - Guia item:', vlguia, 'nrodep:', item.nrodep)
-            return acc + vlguia
-          }, 0)
-          
-          fonteDados = 'IRPFT'
-          console.log('Usando dados do IRPFT - Mensalidade:', totalTitularMensalidade, 'Guia:', totalTitularGuia)
+          .eq('ano', anoCalendario)
+
+        if (irError) {
+          console.error(`Erro na consulta ${source.label}:`, irError)
+          continue
         }
+
+        const dadosTitular = (irData || []).filter(isTitularRegistro)
+        if (!dadosTitular.length) {
+          continue
+        }
+
+        totalTitularMensalidade = dadosTitular.reduce((acc: number, item: any) => {
+          return acc + (parseCurrencyToCents(item.vlmen) || parseCurrencyToCents(item.ment))
+        }, 0)
+        totalTitularGuia = dadosTitular.reduce((acc: number, item: any) => {
+          return acc + source.parseGuia(item)
+        }, 0)
+
+        fonteDados = source.label
+        tabelaDependentes = source.detailTable
+        console.log(`Usando dados do ${source.label} - Mensalidade:`, totalTitularMensalidade, 'Guia:', totalTitularGuia)
+        break
       } catch (err) {
-        console.error('Erro na consulta IRPFT:', err)
+        console.error(`Erro inesperado na consulta ${source.label}:`, err)
       }
     }
     
@@ -557,16 +623,16 @@ async function generateIRReport(supabase: any, beneficiary: any, matricula: numb
       console.error('Erro na consulta dependentes:', err)
     }
     
-    // 4. Buscar dados de IR dos dependentes (IRPFD) - apenas nrodep > 0
+    // 4. Buscar dados de IR dos dependentes (base regular: IRPFD | base boleto: IRPFDB) - apenas nrodep > 0
     let irDependentes: any[] = []
     try {
       const { data: irDependentesData, error: irDependentesError } = await supabase
-        .from('irpfd')
+        .from(tabelaDependentes)
         .select('*')
         .eq('matricula', matricula)
         .eq('ano', anoCalendario) // Buscar pelo ano calendário
       
-      console.log('IRPFD Dependentes - Todos os dados:', irDependentesData)
+      console.log(`${tabelaDependentes.toUpperCase()} Dependentes - Todos os dados:`, irDependentesData)
       
       if (irDependentesError) {
         console.error('Erro ao buscar IR dependentes:', irDependentesError)
@@ -578,7 +644,7 @@ async function generateIRReport(supabase: any, beneficiary: any, matricula: numb
         console.log('IR Dependentes filtrado:', irDependentes)
       }
     } catch (err) {
-      console.error('Erro na consulta IRPFD dependentes:', err)
+      console.error(`Erro na consulta ${tabelaDependentes.toUpperCase()} dependentes:`, err)
     }
     
     console.log(`=== RESUMO IR ===`)
@@ -587,6 +653,28 @@ async function generateIRReport(supabase: any, beneficiary: any, matricula: numb
     console.log(`Dependentes: ${irDependentes.length} registros`)
     
     // Gerar HTML do relatório IR
+    const totalDependentesCentavos = irDependentes.reduce((acc: number, dep: any) => {
+      return acc + parseCurrencyToCents(dep.vlmen) + parseCurrencyToCents(dep.vlguia)
+    }, 0)
+    const totalTitularCentavos = totalTitularMensalidade + totalTitularGuia
+    const totalGeralCentavos = totalTitularCentavos + totalDependentesCentavos
+    const detalhesRelatorio = {
+      totais_centavos: {
+        titular: {
+          mensalidade: totalTitularMensalidade,
+          guia: totalTitularGuia,
+          total: totalTitularCentavos,
+        },
+        dependentes: {
+          total: totalDependentesCentavos,
+          quantidade: irDependentes.length,
+        },
+        geral: {
+          total: totalGeralCentavos,
+        }
+      }
+    }
+
     const htmlContent = generateIRReportHTML(
       beneficiary,
       { mensalidade: totalTitularMensalidade, guia: totalTitularGuia },
@@ -600,7 +688,6 @@ async function generateIRReport(supabase: any, beneficiary: any, matricula: numb
 
     // Gerar token único e salvar no banco
     const token = crypto.randomUUID()
-    
     // Adicionar token ao HTML antes de salvar
     const htmlWithToken = htmlContent.replace(
       '</body>',
@@ -620,6 +707,8 @@ async function generateIRReport(supabase: any, beneficiary: any, matricula: numb
         data_fim: `${anoCalendario}-12-31`,
         gerado_por_matricula: geradoPorMatricula,
         gerado_por_sigla: geradoPorSigla,
+        valor_total_centavos: totalGeralCentavos,
+        detalhes_relatorio: detalhesRelatorio,
         html_content: htmlWithToken,
         filename
       })
@@ -750,21 +839,23 @@ function generateIRReportHTML(
       }
         
       .logo { 
-        margin-bottom: 10px;
+        margin-bottom: 4px;
         text-align: center;
       }
         
       .logo img {
-        height: 80px;
-        max-width: 300px;
+        width: 290px;
+        max-width: 90%;
+        height: auto;
+        object-fit: contain;
         display: block;
         margin: 0 auto;
       }
         
       .title { 
-        font-size: 18px;
+        font-size: 20px;
         font-weight: bold; 
-        margin: 10px 0;
+        margin: 6px 0;
         color: #2c5aa0;
       }
         
@@ -846,8 +937,7 @@ function generateIRReportHTML(
   <body>
     <div class="header">
       <div class="logo">
-        <img src="/images/e548bfa7-21ab-4b35-866a-211b0aaa1135.png" alt="Logo FUNSEP">
-        <div style="font-size: 10px; color: #666; margin-top: 5px;">CNPJ: 77.750.354/0001-88</div>
+        <img src="/images/logo-funsep-completa-relatorio.svg" alt="Logo FUNSEP">
       </div>
       <div class="title">DECLARAÇÃO</div>
     </div>
@@ -896,7 +986,7 @@ function generateIRReportHTML(
     </table>
 
     <div class="footer">
-      <p><strong>FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO</strong></p>
+      <p><strong>FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO - CNPJ 77.750.354/0001-88</strong></p>
       <p>Gerado em ${formatarDataHoraBrasilia(dataAtual)} - Documento válido sem assinatura</p>
     </div>
   </body>
@@ -973,13 +1063,15 @@ function generateReportHTML(
         }
         
         .logo { 
-            margin-bottom: 2px;
+            margin-bottom: 1px;
             text-align: center;
         }
         
         .logo img {
-            height: 65px;
-            max-width: 250px;
+            width: 260px;
+            max-width: 90%;
+            height: auto;
+            object-fit: contain;
             display: block;
             margin: 0 auto;
         }
@@ -991,9 +1083,9 @@ function generateReportHTML(
         }
         
         .title { 
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold; 
-            margin: 4px 0 2px 0;
+            margin: 3px 0 2px 0;
             color: #2c5aa0;
         }
         
@@ -1255,9 +1347,7 @@ function generateReportHTML(
 <body>
     <div class="header">
         <div class="logo">
-            <img src="/images/e548bfa7-21ab-4b35-866a-211b0aaa1135.png" alt="Logo FUNSEP">
-            <div style="font-size: 9px; color: #666; margin-top: 5px;">Fundo de Saúde dos Servidores do Poder Judiciário</div>
-            <div class="cnpj">CNPJ: 77.750.354/0001-88</div>
+            <img src="/images/logo-funsep-completa-relatorio.svg" alt="Logo FUNSEP">
         </div>
         <div class="title">${tituloRelatorio}</div>
         <div class="subtitle">Período: ${formatDate(dataInicio)} a ${formatDate(dataFim)}</div>
@@ -1398,7 +1488,7 @@ function generateReportHTML(
     ` : ''}
 
     <div class="footer">
-        <p><strong>FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO</strong></p>
+        <p><strong>FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO - CNPJ 77.750.354/0001-88</strong></p>
         <p>Gerado em ${formatarDataHoraBrasilia(dataAtual)} - Documento válido sem assinatura</p>
     </div>
 </body>
@@ -1639,6 +1729,23 @@ async function generateMensalidadesReport(supabase: any, beneficiary: any, matri
     }
     
     // 4. Gerar HTML do relatório
+    const calcularTotalMensalidadeCentavos = (registro: any): number => {
+      const meses = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+      const totalReais = meses.reduce((acc, mes) => acc + safeNumber(registro?.[mes]), 0)
+      return Math.round(totalReais * 100)
+    }
+
+    const totalTitularCentavos = calcularTotalMensalidadeCentavos(titular)
+    const totalDependentesCentavos = dependentes.reduce((acc, dep) => acc + calcularTotalMensalidadeCentavos(dep), 0)
+    const totalGeralCentavos = totalTitularCentavos + totalDependentesCentavos
+    const detalhesRelatorio = {
+      totais_centavos: {
+        titular: { total: totalTitularCentavos },
+        dependentes: { total: totalDependentesCentavos, quantidade: dependentes.length },
+        geral: { total: totalGeralCentavos }
+      }
+    }
+
     const htmlContent = generateMensalidadesReportHTML(
       beneficiary,
       titular,
@@ -1651,7 +1758,6 @@ async function generateMensalidadesReport(supabase: any, beneficiary: any, matri
     
     // 5. Gerar token único e salvar no banco
     const token = crypto.randomUUID()
-    
     const htmlWithToken = htmlContent.replace(
       '</body>',
       `<div style="margin-top: 30px; padding: 15px; background-color: #f5f5f5; border: 1px solid #ddd; border-radius: 5px;">
@@ -1670,6 +1776,8 @@ async function generateMensalidadesReport(supabase: any, beneficiary: any, matri
         data_fim: `${ano}-12-31`,
         gerado_por_matricula: geradoPorMatricula,
         gerado_por_sigla: geradoPorSigla,
+        valor_total_centavos: totalGeralCentavos,
+        detalhes_relatorio: detalhesRelatorio,
         html_content: htmlWithToken,
         filename
       })
@@ -1840,21 +1948,23 @@ function generateMensalidadesReportHTML(
       }
 
       .logo {
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         text-align: center;
       }
 
       .logo img {
-        height: 70px;
-        max-width: 280px;
+        width: 280px;
+        max-width: 90%;
+        height: auto;
+        object-fit: contain;
         display: block;
         margin: 0 auto;
       }
 
       .title {
-        font-size: 16px;
+        font-size: 17px;
         font-weight: bold;
-        margin: 8px 0;
+        margin: 6px 0;
         color: #2c5aa0;
       }
       
@@ -1949,8 +2059,7 @@ function generateMensalidadesReportHTML(
 <body>
     <div class="header">
         <div class="logo">
-            <img src="/images/e548bfa7-21ab-4b35-866a-211b0aaa1135.png" alt="Logo FUNSEP">
-            <div style="font-size: 10px; color: #666; margin-top: 5px;">FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO</div>
+            <img src="/images/logo-funsep-completa-relatorio.svg" alt="Logo FUNSEP">
         </div>
     </div>
 
@@ -2022,7 +2131,7 @@ function generateMensalidadesReportHTML(
     </div>
 
     <div class="footer">
-        <p><strong>FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO</strong></p>
+        <p><strong>FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO - CNPJ 77.750.354/0001-88</strong></p>
         <p>Gerado em ${formatarDataHoraBrasilia(dataAtual)} - Documento válido sem assinatura</p>
     </div>
 </body>

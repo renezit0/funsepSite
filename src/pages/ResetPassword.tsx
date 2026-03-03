@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase, SUPABASE_CONFIG } from "@/integrations/supabase/client";
+import { SUPABASE_CONFIG } from "@/integrations/supabase/client";
 import { useFeedback } from "@/contexts/FeedbackContext";
 import { KeyRound, Eye, EyeOff, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
@@ -16,9 +16,10 @@ interface TokenData {
 }
 
 export default function ResetPassword() {
-  const { token } = useParams<{ token: string }>();
+  const { token: paramToken } = useParams<{ token: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
-  const { mostrarToast, mostrarFeedback } = useFeedback();
+  const { mostrarFeedback } = useFeedback();
 
   const [loading, setLoading] = useState(true);
   const [validating, setValidating] = useState(false);
@@ -29,10 +30,42 @@ export default function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [redirectSeconds, setRedirectSeconds] = useState(5);
+
+  const token = (() => {
+    const queryParams = new URLSearchParams(location.search);
+    const queryToken = queryParams.get('token');
+    if (paramToken) return paramToken;
+    if (queryToken) return queryToken;
+
+    if (location.hash && location.hash.includes('/redefinir-senha/')) {
+      const hashToken = location.hash.split('/redefinir-senha/')[1]?.split('?')[0];
+      if (hashToken) return hashToken;
+    }
+
+    return '';
+  })();
 
   useEffect(() => {
     validateToken();
-  }, [token]);
+  }, [paramToken, location.search, location.hash]);
+
+  useEffect(() => {
+    if (!isCompleted) return;
+
+    if (redirectSeconds <= 0) {
+      navigate('/');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setRedirectSeconds((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [isCompleted, redirectSeconds, navigate]);
 
   const validateToken = async () => {
     if (!token) {
@@ -44,16 +77,8 @@ export default function ResetPassword() {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase.functions.invoke('reset-password/validate', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      // Como a função espera um query param, vamos fazer uma chamada fetch direta
       const response = await fetch(
-        `${SUPABASE_CONFIG.url}/functions/v1/reset-password/validate?token=${token}`,
+        `${SUPABASE_CONFIG.url}/functions/v1/reset-password/validate?token=${encodeURIComponent(token)}`,
         {
           method: 'GET',
           headers: {
@@ -126,10 +151,9 @@ export default function ResetPassword() {
         : 'Senha cadastrada com sucesso! Você já pode fazer login.';
 
       mostrarFeedback('sucesso', 'Sucesso!', mensagem);
-
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
+      setSuccessMessage(mensagem);
+      setRedirectSeconds(5);
+      setIsCompleted(true);
 
     } catch (error) {
       console.error('Erro ao redefinir senha:', error);
@@ -216,92 +240,114 @@ export default function ResetPassword() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">Nova Senha *</Label>
-              <div className="relative">
-                <Input
-                  id="newPassword"
-                  type={showPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Digite sua nova senha"
-                  required
-                  minLength={6}
-                  disabled={validating}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+          {isCompleted ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                <div className="flex items-center gap-2 text-green-700 font-medium">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span>Operação concluída com sucesso</span>
+                </div>
+                <p className="text-sm text-green-700 mt-2">{successMessage}</p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Mínimo de 6 caracteres
+              <p className="text-sm text-muted-foreground text-center">
+                Redirecionando em <strong>{redirectSeconds}</strong> segundos...
               </p>
+              <Button
+                type="button"
+                onClick={() => navigate('/')}
+                className="w-full"
+              >
+                Ir para a página inicial
+              </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Nova Senha *</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Digite novamente sua nova senha"
-                  required
-                  minLength={6}
-                  disabled={validating}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Nova Senha *</Label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Digite sua nova senha"
+                    required
+                    minLength={6}
+                    disabled={validating}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Mínimo de 6 caracteres
+                </p>
               </div>
-            </div>
 
-            {newPassword && confirmPassword && (
-              <div className={`text-sm flex items-center gap-2 ${
-                newPassword === confirmPassword ? 'text-green-600' : 'text-destructive'
-              }`}>
-                {newPassword === confirmPassword ? (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Nova Senha *</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Digite novamente sua nova senha"
+                    required
+                    minLength={6}
+                    disabled={validating}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {newPassword && confirmPassword && (
+                <div className={`text-sm flex items-center gap-2 ${
+                  newPassword === confirmPassword ? 'text-green-600' : 'text-destructive'
+                }`}>
+                  {newPassword === confirmPassword ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>As senhas coincidem</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4" />
+                      <span>As senhas não coincidem</span>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full gap-2"
+                disabled={validating || newPassword !== confirmPassword || newPassword.length < 6}
+              >
+                {validating ? (
                   <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>As senhas coincidem</span>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {tokenData?.hasPassword ? 'Redefinindo...' : 'Cadastrando...'}
                   </>
                 ) : (
                   <>
-                    <XCircle className="h-4 w-4" />
-                    <span>As senhas não coincidem</span>
+                    <KeyRound className="h-4 w-4" />
+                    {tokenData?.hasPassword ? 'Redefinir Senha' : 'Cadastrar Senha'}
                   </>
                 )}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full gap-2"
-              disabled={validating || newPassword !== confirmPassword || newPassword.length < 6}
-            >
-              {validating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {tokenData?.hasPassword ? 'Redefinindo...' : 'Cadastrando...'}
-                </>
-              ) : (
-                <>
-                  <KeyRound className="h-4 w-4" />
-                  {tokenData?.hasPassword ? 'Redefinir Senha' : 'Cadastrar Senha'}
-                </>
-              )}
-            </Button>
-          </form>
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

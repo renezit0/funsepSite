@@ -16,7 +16,7 @@ interface Noticia {
   conteudo: string;
   categoria: string;
   imagem_url: string | null;
-  data_publicacao: string;
+  data_publicacao: string | null;
   created_at: string;
   updated_at: string;
   secao?: string;
@@ -37,7 +37,7 @@ export function NewsPage() {
         .from('noticias')
         .select('*')
         .eq('publicado', true)
-        .order('data_publicacao', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Erro ao carregar notícias:', error);
@@ -118,7 +118,7 @@ export function NewsPage() {
                       </Badge>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
-                        {format(new Date(noticia.data_publicacao), "dd/MM/yyyy", { locale: ptBR })}
+                        {format(new Date(noticia.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </div>
                     </div>
                     <h3 className="noticia-card-titulo">
@@ -138,8 +138,8 @@ export function NewsPage() {
                           <ArrowRight className="h-3 w-3" />
                         </Button>
                       </div>
-                      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[90vw] md:max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
-                        <div className="overflow-y-auto flex-1 p-3 sm:p-4 md:p-6">
+                      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[90vw] md:max-w-4xl max-h-[85vh] p-0 gap-0 overflow-y-auto">
+                        <div className="p-3 sm:p-4 md:p-6">
                           <DialogHeader className="space-y-3 sm:space-y-4 mb-4">
                             <div className="flex items-center gap-2">
                               <Badge className={`${getCategoryColor(noticia.categoria)} text-white text-xs sm:text-sm`}>

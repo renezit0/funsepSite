@@ -10,6 +10,23 @@ interface ResetPasswordRequest {
   newPassword: string
 }
 
+const normalizeCpf = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined) return ''
+  const digits = String(value).replace(/\D/g, '')
+  if (!digits) return ''
+  return digits.padStart(11, '0').slice(-11)
+}
+
+const cpfVariants = (value: string | number | null | undefined): string[] => {
+  const normalized = normalizeCpf(value)
+  if (!normalized) return []
+
+  const compact = normalized.replace(/^0+/, '') || '0'
+  if (compact === normalized) return [normalized]
+
+  return [normalized, compact]
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -48,7 +65,7 @@ Deno.serve(async (req) => {
         const { data: senhaExistente } = await supabase
           .from('senhas')
           .select('id')
-          .eq('cpf', tokenData.cadben.cpf.toString())
+          .in('cpf', cpfVariants(tokenData.cadben.cpf))
           .maybeSingle()
         hasPassword = !!senhaExistente
       }
@@ -178,7 +195,7 @@ Deno.serve(async (req) => {
       const { data: senhaExistente, error: senhaCheckError } = await supabase
         .from('senhas')
         .select('id')
-        .eq('cpf', beneficiario.cpf.toString())
+        .in('cpf', cpfVariants(beneficiario.cpf))
         .maybeSingle()
 
       if (senhaCheckError && senhaCheckError.code !== 'PGRST116') {
@@ -208,7 +225,7 @@ Deno.serve(async (req) => {
         const { error: insertError } = await supabase
           .from('senhas')
           .insert({
-            cpf: beneficiario.cpf.toString(),
+            cpf: normalizeCpf(beneficiario.cpf),
             senha: newPassword,
             matricula: beneficiario.matricula,
             nome: beneficiario.nome,

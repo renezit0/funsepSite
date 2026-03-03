@@ -11,7 +11,20 @@ interface ModalFeedbackProps {
 }
 
 const ModalFeedback: React.FC<ModalFeedbackProps> = ({ show, tipo, titulo, mensagem, onClose }) => {
+  React.useEffect(() => {
+    if (!show) return;
+    document.body.classList.add('feedback-modal-open');
+    return () => {
+      document.body.classList.remove('feedback-modal-open');
+    };
+  }, [show]);
+
   if (!show) return null;
+  const handleClose = (event?: React.MouseEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    onClose();
+  };
 
   const getIconConfig = () => {
     switch (tipo) {
@@ -51,12 +64,14 @@ const ModalFeedback: React.FC<ModalFeedbackProps> = ({ show, tipo, titulo, mensa
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001]"
-      onClick={onClose}
+      className="feedback-modal-root fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] animate-in fade-in-0 duration-150"
+      onClick={handleClose}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-background rounded-xl p-6 w-[90%] max-w-[450px] shadow-2xl"
+        onMouseDown={(e) => e.stopPropagation()}
+        className="bg-background rounded-xl p-6 w-[90%] max-w-[450px] shadow-2xl animate-in zoom-in-95 fade-in-0 duration-150"
       >
         {/* Header com ícone */}
         <div className="text-center mb-5">
@@ -82,7 +97,11 @@ const ModalFeedback: React.FC<ModalFeedbackProps> = ({ show, tipo, titulo, mensa
 
         {/* Botão */}
         <button
-          onClick={onClose}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onClick={handleClose}
           className="w-full py-3 text-white border-none rounded-lg text-sm font-semibold cursor-pointer transition-all hover:opacity-90"
           style={{ background: config.buttonBg }}
         >
