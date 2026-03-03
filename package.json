@@ -1,14 +1,26 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "funsep-admin-desktop",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
+  "homepage": ".",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/renezit0/funsepSite.git"
+  },
   "scripts": {
+    "prebuild": "npm run icons:generate",
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "icons:generate": "node scripts/generate-icons.mjs",
+    "electron:dev": "concurrently -k \"vite\" \"wait-on http://localhost:8080 && cross-env ELECTRON_START_URL=http://localhost:8080/admin electron .\"",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win nsis --x64",
+    "release:win": "npm run build && electron-builder --win nsis --x64 --publish always"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -61,6 +73,7 @@
     "react-router-dom": "^6.30.1",
     "recharts": "^2.15.4",
     "sonner": "^1.7.4",
+    "electron-updater": "^6.8.3",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^9.0.1",
@@ -75,15 +88,70 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^40.2.1",
+    "electron-builder": "^26.7.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "lovable-tagger": "^1.1.9",
     "postcss": "^8.5.6",
+    "png-to-ico": "^2.1.8",
+    "sharp": "^0.33.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "vite-plugin-pwa": "^0.20.5",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "br.com.funsep.admin.desktop",
+    "productName": "FUNSEP Admin",
+    "executableName": "FUNSEP-Admin",
+    "icon": "electron/icons/icon.png",
+    "extraMetadata": {
+      "main": "electron/main.cjs"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "asar": true,
+    "mac": {
+      "icon": "electron/icons/icon.icns",
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "icon": "electron/icons/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "FUNSEP Admin",
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "electron/icons/icon.ico",
+      "uninstallerIcon": "electron/icons/icon.ico",
+      "installerHeaderIcon": "electron/icons/icon.ico"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "renezit0",
+        "repo": "funsepSite",
+        "releaseType": "release"
+      }
+    ]
   }
 }
