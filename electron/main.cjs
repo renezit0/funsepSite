@@ -18,8 +18,6 @@ let lastUpdateCheckSource = 'startup';
 const APP_NAME = 'FUNSEP Admin';
 const GITHUB_OWNER = process.env.ELECTRON_UPDATER_OWNER || 'renezit0';
 const GITHUB_REPO = process.env.ELECTRON_UPDATER_REPO || 'funsepSite';
-const PROD_ADMIN_URL = process.env.FUNSEP_ADMIN_URL || 'https://funsep.com.br/admin';
-
 function sendToRenderer(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(channel, payload);
@@ -31,12 +29,23 @@ function getWindowUrl() {
   if (startUrl) {
     return startUrl;
   }
+  return 'http://localhost:8080/admin';
+}
 
-  if (app.isPackaged) {
-    return PROD_ADMIN_URL;
+function getWindowState() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { maximized: false, minimized: false, fullscreen: false };
   }
 
-  return 'http://localhost:8080/admin';
+  return {
+    maximized: mainWindow.isMaximized(),
+    minimized: mainWindow.isMinimized(),
+    fullscreen: mainWindow.isFullScreen(),
+  };
+}
+
+function sendWindowState() {
+  sendToRenderer('desktop:window-state', getWindowState());
 }
 
 async function runAutoUpdateCheck(source = 'manual') {
@@ -128,6 +137,7 @@ function setupAutoUpdater() {
 
 function createWindow() {
   const iconPath = path.join(__dirname, 'icons', isWindows ? 'icon.ico' : 'icon.png');
+  const startUrl = getWindowUrl();
 
   mainWindow = new BrowserWindow({
     title: `${APP_NAME} - v${app.getVersion()}`,
@@ -137,6 +147,8 @@ function createWindow() {
     minHeight: 680,
     icon: iconPath,
     frame: !isWindows,
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
+    trafficLightPosition: process.platform === 'darwin' ? { x: 14, y: 12 } : undefined,
     backgroundColor: '#ffffff',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -147,7 +159,13 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadURL(getWindowUrl());
+  if (startUrl.startsWith('http://') || startUrl.startsWith('https://')) {
+    mainWindow.loadURL(startUrl);
+  } else if (app.isPackaged) {
+    mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  } else {
+    mainWindow.loadURL(startUrl);
+  }
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -163,6 +181,13 @@ function createWindow() {
   mainWindow.on('focus', () => {
     runAutoUpdateCheck('focus');
   });
+  mainWindow.on('maximize', sendWindowState);
+  mainWindow.on('unmaximize', sendWindowState);
+  mainWindow.on('enter-full-screen', sendWindowState);
+  mainWindow.on('leave-full-screen', sendWindowState);
+  mainWindow.on('minimize', sendWindowState);
+  mainWindow.on('restore', sendWindowState);
+  mainWindow.once('ready-to-show', sendWindowState);
 }
 
 app.whenReady().then(() => {
@@ -191,6 +216,8 @@ ipcMain.handle('desktop:get-meta', () => {
     isDesktop: true,
     appVersion: app.getVersion(),
     adminUrl: getWindowUrl(),
+    platform: process.platform,
+    framed: !isWindows,
   };
 });
 
@@ -198,6 +225,24 @@ ipcMain.handle('desktop:quit-and-install', () => {
   if (autoUpdater) {
     autoUpdater.quitAndInstall(false, true);
   }
+});
+
+ipcMain.handle('desktop:get-window-state', async () => getWindowState());
+
+ipcMain.handle('desktop:window-control', async (_event, payload) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return getWindowState();
+
+  const action = String(payload?.action || '');
+  if (action === 'minimize') mainWindow.minimize();
+  if (action === 'maximize') mainWindow.maximize();
+  if (action === 'unmaximize') mainWindow.unmaximize();
+  if (action === 'toggle-maximize') {
+    if (mainWindow.isMaximized()) mainWindow.unmaximize();
+    else mainWindow.maximize();
+  }
+  if (action === 'close') mainWindow.close();
+
+  return getWindowState();
 });
 
 app.on('window-all-closed', () => {

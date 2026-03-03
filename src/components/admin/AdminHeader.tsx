@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Bell, RefreshCw, LogOut, User, Home } from "lucide-react";
+import { Bell, RefreshCw, LogOut, User, Home, Minus, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AdminSession } from "@/services/adminAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -23,6 +23,8 @@ export function AdminHeader({ session, onLogout, onOpenSupportMessages }: AdminH
   const [pendingSupportCount, setPendingSupportCount] = useState(0);
   const [pendingPreview, setPendingPreview] = useState<Array<{ id: string; nome: string; mensagem: string; created_at: string }>>([]);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [desktopPlatform, setDesktopPlatform] = useState("");
+  const [windowMaximized, setWindowMaximized] = useState(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<{ type: string; message: string }>({
     type: "idle",
@@ -30,17 +32,26 @@ export function AdminHeader({ session, onLogout, onOpenSupportMessages }: AdminH
   });
 
   useEffect(() => {
-    let unsub: (() => void) | undefined;
+    let unsubUpdate: (() => void) | undefined;
+    let unsubWindow: (() => void) | undefined;
     const desktopApi = window.funsepDesktop;
     if (!desktopApi) return;
 
     setIsDesktop(true);
 
-    desktopApi.getMeta().catch(() => {
+    desktopApi.getMeta().then((meta) => {
+      setDesktopPlatform(meta?.platform || "");
+    }).catch(() => {
       // noop
     });
 
-    unsub = desktopApi.onAutoUpdateStatus((payload) => {
+    desktopApi.getWindowState().then((state) => {
+      setWindowMaximized(Boolean(state?.maximized));
+    }).catch(() => {
+      // noop
+    });
+
+    unsubUpdate = desktopApi.onAutoUpdateStatus((payload) => {
       setUpdateStatus({
         type: payload?.type || "idle",
         message: payload?.message || "",
@@ -50,11 +61,25 @@ export function AdminHeader({ session, onLogout, onOpenSupportMessages }: AdminH
         mostrarToast("sucesso", payload.message || "Atualização pronta para instalar.");
       }
     });
+    unsubWindow = desktopApi.onWindowState((payload) => {
+      setWindowMaximized(Boolean(payload?.maximized));
+    });
 
     return () => {
-      if (unsub) unsub();
+      if (unsubUpdate) unsubUpdate();
+      if (unsubWindow) unsubWindow();
     };
   }, [mostrarToast]);
+
+  const handleWindowControl = async (action: "minimize" | "toggle-maximize" | "close") => {
+    const desktopApi = window.funsepDesktop;
+    if (!desktopApi) return;
+    try {
+      await desktopApi.windowControl(action);
+    } catch {
+      // noop
+    }
+  };
 
   const handleCheckUpdates = async () => {
     const desktopApi = window.funsepDesktop;
@@ -124,8 +149,54 @@ export function AdminHeader({ session, onLogout, onOpenSupportMessages }: AdminH
   }, [session.user.cargo, session.user.sigla]);
 
   return (
-    <header className="bg-card border-b border-border px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 fixed top-0 left-0 md:left-[var(--sidebar-width)] right-0 z-30 w-full md:w-[calc(100%-var(--sidebar-width))] overflow-x-hidden">
-      <div className="flex items-center justify-between gap-2">
+    <header className="bg-card border-b border-border fixed top-0 left-0 md:left-[var(--sidebar-width)] right-0 z-30 w-full md:w-[calc(100%-var(--sidebar-width))] overflow-x-hidden">
+      {isDesktop && (
+        <div className="desktop-drag-region h-9 border-b border-border/70 px-3 flex items-center justify-between bg-card/95">
+          <div className="desktop-no-drag flex items-center gap-2">
+            {desktopPlatform === "darwin" ? (
+              <div className="flex items-center gap-1.5 opacity-0 pointer-events-none">
+                <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+                <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+                <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  className="desktop-traffic-btn bg-[#febc2e]"
+                  onClick={() => handleWindowControl("minimize")}
+                  aria-label="Minimizar"
+                  title="Minimizar"
+                >
+                  <Minus className="h-2.5 w-2.5 text-black/70" />
+                </button>
+                <button
+                  type="button"
+                  className="desktop-traffic-btn bg-[#28c840]"
+                  onClick={() => handleWindowControl("toggle-maximize")}
+                  aria-label={windowMaximized ? "Restaurar" : "Maximizar"}
+                  title={windowMaximized ? "Restaurar" : "Maximizar"}
+                >
+                  <Square className="h-2 w-2 text-black/70" />
+                </button>
+                <button
+                  type="button"
+                  className="desktop-traffic-btn bg-[#ff5f57]"
+                  onClick={() => handleWindowControl("close")}
+                  aria-label="Fechar"
+                  title="Fechar"
+                >
+                  <X className="h-2.5 w-2.5 text-black/70" />
+                </button>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">FUNSEP Admin</p>
+          <div className="w-[54px]" />
+        </div>
+      )}
+
+      <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <SidebarTrigger className="md:hidden flex-shrink-0" />
           
@@ -138,15 +209,17 @@ export function AdminHeader({ session, onLogout, onOpenSupportMessages }: AdminH
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => navigate('/')}
-            title="Voltar ao Início"
-            className="h-8 w-8 sm:h-9 sm:w-9"
-          >
-            <Home className="h-4 w-4 sm:h-5 sm:w-5" />
-          </Button>
+          {!isDesktop && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate('/')}
+              title="Voltar ao Início"
+              className="h-8 w-8 sm:h-9 sm:w-9"
+            >
+              <Home className="h-4 w-4 sm:h-5 sm:w-5" />
+            </Button>
+          )}
 
           {isDesktop && (
             <Button

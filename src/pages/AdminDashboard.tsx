@@ -20,23 +20,21 @@ export default function AdminDashboard() {
   const [currentPage, setCurrentPage] = useState<AdminPageType>('dashboard');
   const [session, setSession] = useState<AdminSession | null>(null);
   const navigate = useNavigate();
+  const isDesktopApp = typeof window !== "undefined" && !!window.funsepDesktop;
 
   useEffect(() => {
     const checkAuth = async () => {
       const isValid = await adminAuth.validateSession();
       if (!isValid) {
-        navigate('/');
+        navigate(isDesktopApp ? "/admin" : "/");
         return;
       }
       
       const currentSession = adminAuth.getSession();
-      
-      // CRITICAL SECURITY CHECK: Verify user is actually an admin
       const adminRoles = ['GERENTE', 'DESENVOLVEDOR', 'ANALISTA DE SISTEMAS'];
       if (!currentSession || !adminRoles.includes(currentSession.user.cargo)) {
-        console.error('Unauthorized access attempt to admin panel');
         await adminAuth.logout();
-        navigate('/');
+        navigate(isDesktopApp ? "/admin" : "/");
         return;
       }
       
@@ -44,11 +42,11 @@ export default function AdminDashboard() {
     };
 
     checkAuth();
-  }, [navigate]);
+  }, [isDesktopApp, navigate]);
 
   const handleLogout = async () => {
     await adminAuth.logout();
-    navigate('/');
+    navigate(isDesktopApp ? "/admin" : "/");
   };
 
   if (!session) {
@@ -94,11 +92,8 @@ export default function AdminDashboard() {
           onLogout={handleLogout}
         />
         
-        <SidebarInset>
-          <AdminHeader
-            session={session}
-            onLogout={handleLogout}
-          />
+        <SidebarInset className={isDesktopApp ? "pt-[104px] sm:pt-[108px] md:pt-[112px]" : undefined}>
+          <AdminHeader session={session} onLogout={handleLogout} />
           
           <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-auto">
             {renderPage()}
