@@ -12,16 +12,36 @@ const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, '..');
 
 const srcArg = process.argv[2];
-const sourceSvg = srcArg
-  ? path.resolve(process.cwd(), srcArg)
-  : path.join(root, 'public', 'images', 'logo-funsep-completa.svg');
+const defaultSources = [
+  path.join(root, 'public', 'favicon.svg'),
+  path.join(root, 'public', 'images', 'logo-funsep-completa.svg'),
+];
+
+const resolveSourceSvg = async () => {
+  if (srcArg) {
+    return path.resolve(process.cwd(), srcArg);
+  }
+
+  for (const candidate of defaultSources) {
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      // try next candidate
+    }
+  }
+
+  throw new Error(
+    `Nenhum SVG de icone encontrado. Verifique um destes caminhos: ${defaultSources.join(', ')}`
+  );
+};
 
 const electronDir = path.join(root, 'electron', 'icons');
 const publicIconsDir = path.join(root, 'public', 'icons');
 
 const ensureDir = async (dir) => fs.mkdir(dir, { recursive: true });
 
-const renderPng = async (size) => {
+const renderPng = async (sourceSvg, size) => {
   const target = path.join(root, '.tmp-icons', `icon-${size}.png`);
   await sharp(sourceSvg, { density: 700 })
     .resize(size, size, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
@@ -35,23 +55,24 @@ const safeUnlink = async (p) => {
 };
 
 const run = async () => {
+  const sourceSvg = await resolveSourceSvg();
   await fs.access(sourceSvg);
   await ensureDir(electronDir);
   await ensureDir(publicIconsDir);
   await ensureDir(path.join(root, '.tmp-icons'));
 
   const [p16, p24, p32, p48, p64, p128, p180, p192, p256, p512, p1024] = await Promise.all([
-    renderPng(16),
-    renderPng(24),
-    renderPng(32),
-    renderPng(48),
-    renderPng(64),
-    renderPng(128),
-    renderPng(180),
-    renderPng(192),
-    renderPng(256),
-    renderPng(512),
-    renderPng(1024),
+    renderPng(sourceSvg, 16),
+    renderPng(sourceSvg, 24),
+    renderPng(sourceSvg, 32),
+    renderPng(sourceSvg, 48),
+    renderPng(sourceSvg, 64),
+    renderPng(sourceSvg, 128),
+    renderPng(sourceSvg, 180),
+    renderPng(sourceSvg, 192),
+    renderPng(sourceSvg, 256),
+    renderPng(sourceSvg, 512),
+    renderPng(sourceSvg, 1024),
   ]);
 
   await Promise.all([
