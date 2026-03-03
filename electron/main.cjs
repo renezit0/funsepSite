@@ -29,7 +29,7 @@ function getWindowUrl() {
   if (startUrl) {
     return startUrl;
   }
-  return 'http://localhost:8080/admin';
+  return 'http://localhost:8080/#/admin';
 }
 
 function getWindowState() {
@@ -159,10 +159,8 @@ function createWindow() {
     },
   });
 
-  if (startUrl.startsWith('http://') || startUrl.startsWith('https://')) {
-    mainWindow.loadURL(startUrl);
-  } else if (app.isPackaged) {
-    mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  if (app.isPackaged) {
+    mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), { hash: '/admin' });
   } else {
     mainWindow.loadURL(startUrl);
   }
@@ -215,7 +213,7 @@ ipcMain.handle('desktop:get-meta', () => {
   return {
     isDesktop: true,
     appVersion: app.getVersion(),
-    adminUrl: getWindowUrl(),
+    adminUrl: app.isPackaged ? '#/admin' : getWindowUrl(),
     platform: process.platform,
     framed: !isWindows,
   };
