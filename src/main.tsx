@@ -3,8 +3,15 @@ import App from "./App.tsx";
 import "./index.css";
 import { registerSW } from "virtual:pwa-register";
 
-registerSW({
-	immediate: true,
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    updateSW(true);
+  },
+});
+
+window.addEventListener("focus", () => {
+  updateSW();
 });
 
 createRoot(document.getElementById("root")!).render(<App />);
