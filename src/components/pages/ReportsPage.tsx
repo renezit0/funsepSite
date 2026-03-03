@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,32 +6,158 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Hash, Copy, Check, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeedback } from "@/contexts/FeedbackContext";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { generatePDFFromHTML } from '@/utils/generatePDFFromHTML';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ViewReportByToken } from "./ViewReportByToken";
 
 export function ReportsPage() {
   const { session } = useAuth();
+  const ASSOCIADO_REPORT_TYPE: 'ir' = 'ir';
   const [loading, setLoading] = useState(false);
-  const [reportType, setReportType] = useState<'a_pagar' | 'pagos' | 'ir'>('a_pagar');
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear() - 1);
-  const [dateRange, setDateRange] = useState({
-    dataInicio: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    dataFim: ''
-  });
+  const [loadingYears, setLoadingYears] = useState(false);
+  const [availableRegularYears, setAvailableRegularYears] = useState<number[]>([]);
+  const [availableBoletoYears, setAvailableBoletoYears] = useState<number[]>([]);
+  const [hasBoletoIr, setHasBoletoIr] = useState(false);
+  const [irMode, setIrMode] = useState<'regular' | 'boleto'>('regular');
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  /*
+    LÓGICA ANTIGA (associado com todos os tipos):
+    const [reportType, setReportType] = useState<'a_pagar' | 'pagos' | 'ir' | 'mensalidades'>('a_pagar');
+    const [dateRange, setDateRange] = useState({
+      dataInicio: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+      dataFim: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+    });
+    const [availableYears, setAvailableYears] = useState<number[]>([]);
+
+    // Também existia loadAvailableYears() para 'mensalidades'
+    // e renderização de botões para: a_pagar, pagos, ir, mensalidades.
+  */
   const [htmlContent, setHtmlContent] = useState("");
   const [filename, setFilename] = useState("");
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const { mostrarToast, mostrarFeedback } = useFeedback();
+  const hasAvailableRegularData = availableRegularYears.length > 0;
+  const hasAvailableBoletoData = availableBoletoYears.length > 0;
+  const availableCalendarYears = irMode === 'boleto' ? availableBoletoYears : availableRegularYears;
+  const hasAvailableIrData = availableCalendarYears.length > 0;
+
+  const getEdgeFunctionFallbackMessage = async (error: unknown, defaultMessage: string) => {
+    const errObj = error as { message?: string; context?: Response };
+    const ctx = errObj?.context;
+
+    if (ctx instanceof Response) {
+      let backendMessage = '';
+      try {
+        const body = await ctx.clone().json();
+        backendMessage = body?.error || body?.message || body?.details || '';
+      } catch {
+        try {
+          backendMessage = await ctx.clone().text();
+        } catch {
+          backendMessage = '';
+        }
+      }
+
+      if (ctx.status === 401 || ctx.status === 403) {
+        return 'Sua sessão expirou ou você não tem permissão para gerar este relatório. Faça login novamente.';
+      }
+      if (ctx.status === 404) {
+        return backendMessage || 'Não foram encontrados dados para este associado no ano selecionado.';
+      }
+      if (ctx.status >= 500) {
+        return backendMessage || 'Falha interna ao processar o relatório no servidor. Tente novamente em instantes.';
+      }
+      return backendMessage || `Falha na função de relatório (HTTP ${ctx.status}).`;
+    }
+
+    const rawMessage = errObj?.message || String(error || '');
+    if (rawMessage.includes('non-2xx status code')) {
+      return 'A função de geração retornou erro, mas sem detalhe técnico. Verifique período/ano e tente novamente.';
+    }
+
+    return rawMessage || defaultMessage;
+  };
+
+  const formatIrYearLabel = (calendarYear: number) => {
+    const exerciseYear = calendarYear + 1;
+    return `${exerciseYear} (Ano calendário ${calendarYear})`;
+  };
+
+  useEffect(() => {
+    const loadAvailableYears = async () => {
+      const matricula = Number(session?.user?.matricula);
+      if (!Number.isFinite(matricula)) {
+        setAvailableRegularYears([]);
+        setAvailableBoletoYears([]);
+        setHasBoletoIr(false);
+        setIrMode('regular');
+        setSelectedYear(null);
+        return;
+      }
+
+      setLoadingYears(true);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-report', {
+          body: {
+            matricula,
+            reportType: 'ir_years',
+            geradoPorMatricula: session?.user?.matricula,
+            geradoPorSigla: session?.sigla,
+          }
+        });
+
+        if (error) throw error;
+
+        const regularYears = Array.isArray(data?.anosRegular)
+          ? data.anosRegular
+              .map((year: number | string | null) => Number(year))
+              .filter((year: number) => Number.isFinite(year) && year > 0)
+              .sort((a: number, b: number) => b - a)
+          : [];
+        const boletoYears = Array.isArray(data?.anosBoleto)
+          ? data.anosBoleto
+              .map((year: number | string | null) => Number(year))
+              .filter((year: number) => Number.isFinite(year) && year > 0)
+              .sort((a: number, b: number) => b - a)
+          : [];
+        const hasBoleto = Boolean(data?.hasBoleto) || boletoYears.length > 0;
+        const nextMode: 'regular' | 'boleto' = regularYears.length > 0 ? 'regular' : (boletoYears.length > 0 ? 'boleto' : 'regular');
+
+        setAvailableRegularYears(regularYears);
+        setAvailableBoletoYears(boletoYears);
+        setHasBoletoIr(hasBoleto);
+        setIrMode(nextMode);
+        const yearsForMode = nextMode === 'boleto' ? boletoYears : regularYears;
+        setSelectedYear(yearsForMode.length > 0 ? yearsForMode[0] : null);
+      } catch (error: unknown) {
+        console.error('Erro ao carregar anos de IR disponíveis:', error);
+        setAvailableRegularYears([]);
+        setAvailableBoletoYears([]);
+        setHasBoletoIr(false);
+        setIrMode('regular');
+        setSelectedYear(null);
+        mostrarFeedback('erro', 'Erro', 'Não foi possível carregar os anos disponíveis para IR');
+      } finally {
+        setLoadingYears(false);
+      }
+    };
+
+    loadAvailableYears();
+  }, [session?.user?.matricula, mostrarFeedback]);
 
   const generateReport = async () => {
     if (!session?.user?.matricula) {
       mostrarFeedback('erro', 'Erro', 'Você precisa estar logado para gerar relatórios');
+      return;
+    }
+    if (!selectedYear) {
+      mostrarFeedback('erro', 'Erro', 'Nenhum ano disponível para gerar a declaração de IR');
       return;
     }
 
@@ -41,12 +167,19 @@ export function ReportsPage() {
       const { data, error } = await supabase.functions.invoke('generate-report', {
         body: {
           matricula: session.user.matricula,
-          dataInicio: reportType === 'ir' ? `${selectedYear}-01-01` : dateRange.dataInicio,
-          dataFim: reportType === 'ir' ? `${selectedYear}-12-31` : dateRange.dataFim,
-          reportType: reportType,
+          dataInicio: `${selectedYear}-01-01`,
+          dataFim: `${selectedYear}-12-31`,
+          reportType: ASSOCIADO_REPORT_TYPE,
+          irMode,
+          /*
+            LÓGICA ANTIGA:
+            dataInicio: reportType === 'ir' || reportType === 'mensalidades' ? `${selectedYear}-01-01` : dateRange.dataInicio,
+            dataFim: reportType === 'ir' || reportType === 'mensalidades' ? `${selectedYear}-12-31` : dateRange.dataFim,
+            reportType: reportType,
+          */
           geradoPorMatricula: session.user.matricula,
           geradoPorSigla: session.sigla,
-        },
+        }
       });
 
       if (error) throw error;
@@ -57,9 +190,10 @@ export function ReportsPage() {
       setTokenModalOpen(true);
 
       mostrarToast('sucesso', 'Relatório gerado com sucesso!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao gerar relatório:', error);
-      mostrarFeedback('erro', 'Erro', error.message || 'Erro ao gerar relatório');
+      const fallbackMessage = await getEdgeFunctionFallbackMessage(error, 'Erro ao gerar relatório');
+      mostrarFeedback('erro', 'Erro', fallbackMessage);
     } finally {
       setLoading(false);
     }
@@ -71,61 +205,7 @@ export function ReportsPage() {
     setLoading(true);
 
     try {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlContent;
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.top = '-9999px';
-      tempDiv.style.width = '794px';
-      tempDiv.style.maxWidth = '794px';
-      tempDiv.style.backgroundColor = '#ffffff';
-      document.body.appendChild(tempDiv);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2.5,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        width: 794,
-        height: Math.max(1123, tempDiv.scrollHeight),
-      });
-
-      document.body.removeChild(tempDiv);
-
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-
-      const marginLeft = 15;
-      const marginTop = 15;
-      const marginRight = 15;
-      const marginBottom = 15;
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const contentWidth = pageWidth - marginLeft - marginRight;
-      const contentHeight = pageHeight - marginTop - marginBottom;
-      const imgWidth = contentWidth;
-      const imgHeight = (canvas.height * contentWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = marginTop;
-      let page = 0;
-
-      pdf.addImage(imgData, 'PNG', marginLeft, position, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= contentHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight + marginTop;
-        pdf.addPage();
-        page++;
-        pdf.addImage(imgData, 'PNG', marginLeft, position, imgWidth, imgHeight, undefined, 'FAST');
-        heightLeft -= contentHeight;
-      }
-
-      pdf.save(filename);
-
+      await generatePDFFromHTML({ htmlContent, filename });
       mostrarToast('sucesso', 'PDF baixado com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
@@ -136,136 +216,172 @@ export function ReportsPage() {
   };
 
   const copyTokenToClipboard = () => {
-    if (generatedToken) {
-      navigator.clipboard.writeText(generatedToken);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      mostrarToast('sucesso', 'Token copiado para a área de transferência!');
-    }
+    const copyWithFallback = (text: string) => {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      textArea.style.top = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const copiedByCommand = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return copiedByCommand;
+    };
+
+    const doCopy = async () => {
+      if (!generatedToken) return;
+
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(generatedToken);
+        } else {
+          const copied = copyWithFallback(generatedToken);
+          if (!copied) throw new Error('Falha ao copiar token');
+        }
+
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        mostrarToast('sucesso', 'Token copiado para a área de transferência!');
+      } catch (error) {
+        const copied = copyWithFallback(generatedToken);
+        if (copied) {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+          mostrarToast('sucesso', 'Token copiado para a área de transferência!');
+          return;
+        }
+
+        console.error('Erro ao copiar token:', error);
+        mostrarFeedback('erro', 'Erro', 'Não foi possível copiar o token automaticamente');
+      }
+    };
+
+    void doCopy();
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <FileText className="h-8 w-8" />
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FileText className="h-6 w-6 text-primary" />
+            </div>
             Relatórios
-          </h1>
-          <p className="text-muted-foreground mt-2">
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
             Gere seus relatórios ou visualize por token
           </p>
-        </div>
+        </CardHeader>
+      </Card>
 
-        <Tabs defaultValue="gerar">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="gerar">Gerar Relatório</TabsTrigger>
-            <TabsTrigger value="validar">Validar Token</TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="gerar" className="w-full">
+        <TabsList className="grid w-full max-w-xs sm:max-w-md mx-auto grid-cols-2 p-0 gap-0 bg-transparent border border-border rounded-md overflow-hidden" style={{ height: '44px' }}>
+          <TabsTrigger value="gerar" className="text-xs sm:text-sm px-4 rounded-l-md rounded-r-none flex items-center justify-center bg-background hover:bg-background border-r border-border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm" style={{ paddingTop: 0, paddingBottom: 0, height: '44px', minHeight: '44px' }}>Gerar Relatório</TabsTrigger>
+          <TabsTrigger value="validar" className="text-xs sm:text-sm px-4 rounded-r-md rounded-l-none flex items-center justify-center bg-background hover:bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm" style={{ paddingTop: 0, paddingBottom: 0, height: '44px', minHeight: '44px' }}>Validar Token</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="gerar" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tipo de Relatório</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Button
-                    variant={reportType === 'a_pagar' ? 'default' : 'outline'}
-                    onClick={() => setReportType('a_pagar')}
-                    className="h-20"
-                  >
-                    <div className="text-center">
-                      <FileText className="h-6 w-6 mx-auto mb-2" />
-                      <div>A Pagar</div>
-                    </div>
-                  </Button>
-                  <Button
-                    variant={reportType === 'pagos' ? 'default' : 'outline'}
-                    onClick={() => setReportType('pagos')}
-                    className="h-20"
-                  >
-                    <div className="text-center">
-                      <FileText className="h-6 w-6 mx-auto mb-2" />
-                      <div>Pagos</div>
-                    </div>
-                  </Button>
-                  <Button
-                    variant={reportType === 'ir' ? 'default' : 'outline'}
-                    onClick={() => setReportType('ir')}
-                    className="h-20"
-                  >
-                    <div className="text-center">
-                      <FileText className="h-6 w-6 mx-auto mb-2" />
-                      <div>Declaração IR</div>
-                    </div>
-                  </Button>
-                </div>
-
-                {reportType === 'ir' ? (
-                  <div className="space-y-2">
-                    <Label>Ano de Referência</Label>
-                    <select
-                      className="w-full p-2 border rounded-md"
-                      value={selectedYear}
-                      onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    >
-                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
+        <TabsContent value="gerar" className="mt-6">
+          <Card>
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Tipo de Relatório</Label>
+              </div>
+              {/* LÓGICA ANTIGA:
+                  grid com 4 botões:
+                  - Procedimentos a Pagar
+                  - Procedimentos Pagos
+                  - Declaração IR
+                  - Mensalidades
+                  com setReportType(...) e estilos por tipo.
+              */}
+              <div className={`grid gap-2 sm:gap-3 ${hasBoletoIr ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                <Button
+                  variant={irMode === 'regular' ? "default" : "outline"}
+                  type="button"
+                  className={`h-auto py-3 sm:py-4 ${irMode === 'regular' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+                  disabled={!hasAvailableRegularData}
+                  onClick={() => {
+                    setIrMode('regular');
+                    setSelectedYear(availableRegularYears[0] ?? null);
+                  }}
+                >
+                  <div className="text-center w-full">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1.5 sm:mb-2" />
+                    <div className="text-xs sm:text-sm font-medium">Declaração IR</div>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Data Início</Label>
-                      <input
-                        type="date"
-                        className="w-full p-2 border rounded-md"
-                        value={dateRange.dataInicio}
-                        onChange={(e) => setDateRange({ ...dateRange, dataInicio: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Data Fim (opcional)</Label>
-                      <input
-                        type="date"
-                        className="w-full p-2 border rounded-md"
-                        value={dateRange.dataFim}
-                        onChange={(e) => setDateRange({ ...dateRange, dataFim: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <Button onClick={generateReport} disabled={loading} className="w-full">
-                  <FileText className="h-4 w-4 mr-2" />
-                  {loading ? 'Gerando...' : 'Gerar Relatório'}
                 </Button>
-
-                {htmlContent && (
-                  <Button onClick={downloadPDF} disabled={loading} variant="outline" className="w-full">
-                    <Download className="h-4 w-4 mr-2" />
-                    Baixar PDF
+                {hasBoletoIr && (
+                  <Button
+                    variant={irMode === 'boleto' ? "default" : "outline"}
+                    type="button"
+                    className={`h-auto py-3 sm:py-4 ${irMode === 'boleto' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : ''}`}
+                    disabled={!hasAvailableBoletoData}
+                    onClick={() => {
+                      setIrMode('boleto');
+                      setSelectedYear(availableBoletoYears[0] ?? null);
+                    }}
+                  >
+                    <div className="text-center w-full">
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1.5 sm:mb-2" />
+                      <div className="text-xs sm:text-sm font-medium">IRPF Boletos</div>
+                    </div>
                   </Button>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
 
-          <TabsContent value="validar">
-            <ViewReportByToken />
-          </TabsContent>
-        </Tabs>
+              <div className="space-y-2">
+                <Label htmlFor="ano">Ano de Referência</Label>
+                <Select
+                  value={selectedYear?.toString()}
+                  onValueChange={(value) => setSelectedYear(parseInt(value, 10))}
+                  disabled={loadingYears || !hasAvailableIrData}
+                >
+                  <SelectTrigger id="ano">
+                    <SelectValue placeholder={loadingYears ? "Carregando anos..." : "Sem anos disponíveis"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCalendarYears.map(calendarYear => (
+                      <SelectItem key={calendarYear} value={calendarYear.toString()}>
+                        {formatIrYearLabel(calendarYear)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* LÓGICA ANTIGA:
+                  Se reportType === 'ir' || reportType === 'mensalidades':
+                  - mostrava seletor de ano (mensalidades usava availableYears)
+                  Senão:
+                  - mostrava dataInicio/dataFim (dateRange) para a_pagar/pagos
+              */}
 
-        <Dialog open={tokenModalOpen} onOpenChange={setTokenModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Hash className="h-5 w-5" />
-                Token do Relatório Gerado
-              </DialogTitle>
-            </DialogHeader>
+                <Button
+                  onClick={generateReport}
+                  disabled={loading || loadingYears || !hasAvailableIrData || !selectedYear}
+                  className="w-full gap-2"
+                >
+                  {loading ? "Gerando..." : <><Download className="h-4 w-4" /> Gerar Relatório</>}
+                </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="validar" className="mt-6">
+          <ViewReportByToken />
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={tokenModalOpen} onOpenChange={setTokenModalOpen}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Hash className="h-4 w-4 sm:h-5 sm:w-5" />
+              Token do Relatório Gerado
+            </DialogTitle>
+          </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 Use este token para visualizar o relatório posteriormente:
@@ -282,19 +398,18 @@ export function ReportsPage() {
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={downloadPDF} disabled={loading} className="flex-1">
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+                <Button onClick={() => setTokenModalOpen(false)} variant="outline" className="w-full sm:w-auto">
+                  Fechar
+                </Button>
+                <Button onClick={downloadPDF} disabled={loading} className="w-full sm:w-auto">
                   <Download className="h-4 w-4 mr-2" />
                   Baixar PDF
-                </Button>
-                <Button onClick={() => setTokenModalOpen(false)} variant="outline">
-                  Fechar
                 </Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
-      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { AlertCircle } from "lucide-react";
 import { RequestDocumentUpload } from "@/components/RequestDocumentUpload";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useFeedback } from "@/contexts/FeedbackContext";
 
 interface FormProps {
   formData: any;
@@ -17,6 +18,15 @@ interface FormProps {
 
 export function InclusaoAssociadoForm({ formData, updateFormData, handleDocumentUpload, getDocument }: FormProps) {
   const [numDependentes, setNumDependentes] = useState(0);
+  const { mostrarToast } = useFeedback();
+
+  const validateField = (fieldName: string, fieldLabel: string) => {
+    if (!formData[fieldName] || (typeof formData[fieldName] === "string" && formData[fieldName].trim() === "")) {
+      mostrarToast("erro", `Por favor, preencha o campo: ${fieldLabel}`);
+      return false;
+    }
+    return true;
+  };
 
   return (
     <div className="space-y-6">
@@ -251,19 +261,25 @@ export function InclusaoAssociadoForm({ formData, updateFormData, handleDocument
             
             <div className="space-y-2">
               <Label>Nome Completo *</Label>
-              <Input 
-                value={formData[`dep${index}_nome`] || ""} 
-                onChange={(e) => updateFormData(`dep${index}_nome`, e.target.value)} 
-                required 
+              <Input
+                value={formData[`dep${index}_nome`] || ""}
+                onChange={(e) => updateFormData(`dep${index}_nome`, e.target.value)}
+                onBlur={() => validateField(`dep${index}_nome`, `Nome Completo (Dependente ${index + 1})`)}
+                required
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Parentesco *</Label>
-                <Select 
-                  value={formData[`dep${index}_parentesco`] || ""} 
-                  onValueChange={(v) => updateFormData(`dep${index}_parentesco`, v)}
+                <Select
+                  value={formData[`dep${index}_parentesco`] || ""}
+                  onValueChange={(v) => {
+                    updateFormData(`dep${index}_parentesco`, v);
+                    if (!v) {
+                      mostrarToast("erro", `Por favor, selecione o Parentesco (Dependente ${index + 1})`);
+                    }
+                  }}
                 >
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
@@ -276,9 +292,14 @@ export function InclusaoAssociadoForm({ formData, updateFormData, handleDocument
               </div>
               <div className="space-y-2">
                 <Label>Sexo *</Label>
-                <Select 
-                  value={formData[`dep${index}_sexo`] || ""} 
-                  onValueChange={(v) => updateFormData(`dep${index}_sexo`, v)}
+                <Select
+                  value={formData[`dep${index}_sexo`] || ""}
+                  onValueChange={(v) => {
+                    updateFormData(`dep${index}_sexo`, v);
+                    if (!v) {
+                      mostrarToast("erro", `Por favor, selecione o Sexo (Dependente ${index + 1})`);
+                    }
+                  }}
                 >
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
@@ -292,56 +313,62 @@ export function InclusaoAssociadoForm({ formData, updateFormData, handleDocument
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Data de Nascimento *</Label>
-                <Input 
-                  type="date" 
-                  value={formData[`dep${index}_dtnasc`] || ""} 
-                  onChange={(e) => updateFormData(`dep${index}_dtnasc`, e.target.value)} 
-                  required 
+                <Input
+                  type="date"
+                  value={formData[`dep${index}_dtnasc`] || ""}
+                  onChange={(e) => updateFormData(`dep${index}_dtnasc`, e.target.value)}
+                  onBlur={() => validateField(`dep${index}_dtnasc`, `Data de Nascimento (Dependente ${index + 1})`)}
+                  required
                 />
               </div>
               <div className="space-y-2">
                 <Label>CPF *</Label>
-                <Input 
-                  value={formData[`dep${index}_cpf`] || ""} 
-                  onChange={(e) => updateFormData(`dep${index}_cpf`, e.target.value)} 
-                  required 
+                <Input
+                  value={formData[`dep${index}_cpf`] || ""}
+                  onChange={(e) => updateFormData(`dep${index}_cpf`, e.target.value)}
+                  onBlur={() => validateField(`dep${index}_cpf`, `CPF (Dependente ${index + 1})`)}
+                  required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Nome da Mãe *</Label>
-              <Input 
-                value={formData[`dep${index}_nomemae`] || ""} 
-                onChange={(e) => updateFormData(`dep${index}_nomemae`, e.target.value)} 
-                required 
+              <Input
+                value={formData[`dep${index}_nomemae`] || ""}
+                onChange={(e) => updateFormData(`dep${index}_nomemae`, e.target.value)}
+                onBlur={() => validateField(`dep${index}_nomemae`, `Nome da Mãe (Dependente ${index + 1})`)}
+                required
               />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>RG (Número) *</Label>
-                <Input 
-                  value={formData[`dep${index}_rg`] || ""} 
-                  onChange={(e) => updateFormData(`dep${index}_rg`, e.target.value)} 
-                  required 
+                <Input
+                  value={formData[`dep${index}_rg`] || ""}
+                  onChange={(e) => updateFormData(`dep${index}_rg`, e.target.value)}
+                  onBlur={() => validateField(`dep${index}_rg`, `RG (Dependente ${index + 1})`)}
+                  required
                 />
               </div>
               <div className="space-y-2">
                 <Label>Data Expedição *</Label>
-                <Input 
-                  type="date" 
-                  value={formData[`dep${index}_rg_data`] || ""} 
-                  onChange={(e) => updateFormData(`dep${index}_rg_data`, e.target.value)} 
-                  required 
+                <Input
+                  type="date"
+                  value={formData[`dep${index}_rg_data`] || ""}
+                  onChange={(e) => updateFormData(`dep${index}_rg_data`, e.target.value)}
+                  onBlur={() => validateField(`dep${index}_rg_data`, `Data Expedição RG (Dependente ${index + 1})`)}
+                  required
                 />
               </div>
               <div className="space-y-2">
                 <Label>UF/Órgão *</Label>
-                <Input 
-                  value={formData[`dep${index}_rg_orgao`] || ""} 
-                  onChange={(e) => updateFormData(`dep${index}_rg_orgao`, e.target.value)} 
-                  required 
+                <Input
+                  value={formData[`dep${index}_rg_orgao`] || ""}
+                  onChange={(e) => updateFormData(`dep${index}_rg_orgao`, e.target.value)}
+                  onBlur={() => validateField(`dep${index}_rg_orgao`, `UF/Órgão (Dependente ${index + 1})`)}
+                  required
                 />
               </div>
             </div>
@@ -349,25 +376,42 @@ export function InclusaoAssociadoForm({ formData, updateFormData, handleDocument
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Profissão *</Label>
-                <Input 
-                  value={formData[`dep${index}_profissao`] || ""} 
-                  onChange={(e) => updateFormData(`dep${index}_profissao`, e.target.value)} 
-                  required 
+                <Input
+                  value={formData[`dep${index}_profissao`] || ""}
+                  onChange={(e) => updateFormData(`dep${index}_profissao`, e.target.value)}
+                  onBlur={() => validateField(`dep${index}_profissao`, `Profissão (Dependente ${index + 1})`)}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label>Tipo de Acomodação *</Label>
-                <Select 
-                  value={formData[`dep${index}_acomoda`] || ""} 
-                  onValueChange={(v) => updateFormData(`dep${index}_acomoda`, v)}
-                >
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="APARTAMENTO">Apartamento</SelectItem>
-                    <SelectItem value="ENFERMARIA">Enfermaria</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Escolaridade *</Label>
+                <Input
+                  value={formData[`dep${index}_escolaridade`] || ""}
+                  onChange={(e) => updateFormData(`dep${index}_escolaridade`, e.target.value)}
+                  onBlur={() => validateField(`dep${index}_escolaridade`, `Escolaridade (Dependente ${index + 1})`)}
+                  placeholder="Ensino Fundamental, Médio, Superior, etc."
+                  required
+                />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tipo de Acomodação *</Label>
+              <Select
+                value={formData[`dep${index}_acomoda`] || ""}
+                onValueChange={(v) => {
+                  updateFormData(`dep${index}_acomoda`, v);
+                  if (!v) {
+                    mostrarToast("erro", `Por favor, selecione o Tipo de Acomodação (Dependente ${index + 1})`);
+                  }
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="APARTAMENTO">Apartamento</SelectItem>
+                  <SelectItem value="ENFERMARIA">Enfermaria</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         ))}

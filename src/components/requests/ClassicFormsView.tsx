@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { useFeedback } from "@/contexts/FeedbackContext";
 
 const forms = [
   { id: "exclusao-associado", title: "Exclusão de Associado" },
@@ -24,14 +24,14 @@ const printStyles = `
   }
   body {
     font-family: Verdana, Arial, sans-serif;
-    font-size: 12px;
+    font-size: 11px;
     background-color: #fff;
     color: #000;
-    line-height: 1.5;
+    line-height: 1.35;
     width: 210mm;
     min-height: 297mm;
     margin: 0 auto;
-    padding: 15mm 20mm;
+    padding: 10mm 12mm 12mm 12mm;
   }
   .form-content {
     max-width: 100%;
@@ -39,17 +39,19 @@ const printStyles = `
   .form-title {
     text-align: center;
     color: #2a65b4;
-    margin-bottom: 20px;
-    font-size: 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
     font-weight: bold;
   }
   .deferimento-space {
-    min-height: 80px;
+    min-height: 50px;
     border: 2px solid #2a65b4;
     border-radius: 5px;
-    margin: 15px 0 25px 0;
-    padding: 12px 15px;
+    margin: 10px 0 14px 0;
+    padding: 8px 10px;
     background-color: #f0f7ff;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
   .titulo-deferimento {
     font-weight: bold;
@@ -75,7 +77,7 @@ const printStyles = `
     align-items: center;
     gap: 8px;
     font-weight: bold;
-    font-size: 13px;
+    font-size: 12px;
   }
   .deferimento-checkbox {
     width: 18px;
@@ -94,7 +96,7 @@ const printStyles = `
     font-size: 12px;
   }
   .form-group {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
   .form-group label {
     display: inline-block;
@@ -114,7 +116,7 @@ const printStyles = `
     background: #fff;
   }
   .form-group textarea {
-    min-height: 80px;
+    min-height: 60px;
     resize: vertical;
   }
   .inline-input {
@@ -123,12 +125,21 @@ const printStyles = `
     margin: 0 4px;
     padding: 4px 6px !important;
   }
+  .inline-field {
+    display: inline-block;
+    width: auto;
+    padding: 4px 8px;
+    border: 1px solid #999;
+    border-radius: 4px;
+    background: #fff;
+    vertical-align: baseline;
+  }
   .checkbox-group, .radio-group {
     display: flex;
     gap: 20px;
     align-items: center;
     flex-wrap: wrap;
-    margin: 8px 0;
+    margin: 6px 0;
   }
   .checkbox-group label, .radio-group label {
     font-weight: normal;
@@ -143,10 +154,14 @@ const printStyles = `
   .section-title {
     font-weight: bold;
     color: #2a65b4;
-    margin: 18px 0 8px 0;
+    margin: 14px 0 10px 0;
     padding-bottom: 4px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 2px solid #2a65b4;
     font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    page-break-after: avoid;
+    break-after: avoid;
   }
   .info-box {
     background-color: #f8f9fa;
@@ -155,12 +170,14 @@ const printStyles = `
     margin: 12px 0;
     border-left: 3px solid #2a65b4;
     font-size: 11px;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
   .info-box p {
     margin: 5px 0;
   }
-  .signature-line {
-    margin: 50px 0 30px 0;
+  .signature-line, .signature-block {
+    margin: 28px 0 18px 0;
     text-align: center;
   }
   .signature-line::before {
@@ -170,9 +187,12 @@ const printStyles = `
     margin: 0 auto 8px;
     border-top: 1px solid #000;
   }
+  .signature-block p {
+    text-align: center;
+  }
   .alert {
-    padding: 12px;
-    margin: 15px 0;
+    padding: 8px;
+    margin: 10px 0;
     border-radius: 4px;
     background-color: #fff3cd;
     border-left: 4px solid #ffc107;
@@ -182,22 +202,35 @@ const printStyles = `
     font-size: 11px;
   }
   p {
-    margin: 12px 0;
+    margin: 8px 0;
     text-align: justify;
+  }
+  /* Evitar que inputs inline sejam separados do texto */
+  .inline-field, input.inline-field {
+    white-space: nowrap;
+  }
+  span:has(+ input.inline-field),
+  span:has(+ .inline-field) {
+    white-space: nowrap;
   }
   .page-break {
     page-break-before: always;
-    margin-top: 40px;
+    break-before: page;
+    margin-top: 16px;
+  }
+  .avoid-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    margin: 12px 0;
+    margin: 8px 0;
   }
   table td, table th {
-    padding: 6px;
+    padding: 4px;
     border: 1px solid #ddd;
-    font-size: 11px;
+    font-size: 10px;
   }
   table th {
     background-color: #2a65b4;
@@ -205,30 +238,277 @@ const printStyles = `
     text-align: left;
   }
   @media print {
+    .no-print {
+      display: none !important;
+    }
+    .avoid-break, .info-box, .deferimento-space {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      page-break-before: auto;
+      page-break-after: auto;
+    }
+    .section-title, h3 {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
+    .page-break {
+      page-break-before: always !important;
+      break-before: page !important;
+    }
     @page {
       size: A4;
-      margin: 0;
+      margin: 15mm 15mm 20mm 15mm;
     }
     body {
-      padding: 10mm 15mm;
+      padding: 0;
+      margin: 0;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
   }
 `;
 
-export function ClassicFormsView() {
-  const [activeForm, setActiveForm] = useState("exclusao-associado");
+interface ClassicFormsViewProps {
+  initialFormId?: string | null;
+  hideSidebar?: boolean;
+}
+
+// Função para obter data no horário de Brasília
+const getBrasiliaDate = (): { dia: string; mes: string; mesNome: string; ano: string } => {
+  const brasiliaDate = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const dia = String(brasiliaDate.getDate()).padStart(2, '0');
+  const mes = String(brasiliaDate.getMonth() + 1).padStart(2, '0');
+  const ano = String(brasiliaDate.getFullYear());
+  const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const mesNome = meses[brasiliaDate.getMonth()];
+  return { dia, mes, mesNome, ano };
+};
+
+export function ClassicFormsView({ initialFormId, hideSidebar = false }: ClassicFormsViewProps) {
+  const [activeForm, setActiveForm] = useState(initialFormId || "exclusao-associado");
   const formRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
+  const { mostrarToast } = useFeedback();
+
+  const scopedStyles = `
+    .classic-forms-scope input[type="text"],
+    .classic-forms-scope input[type="email"],
+    .classic-forms-scope textarea,
+    .classic-forms-scope select {
+      border: 1px solid hsl(var(--border));
+      border-radius: 0.5rem;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
+
+    .classic-forms-scope input[type="text"],
+    .classic-forms-scope input[type="email"],
+    .classic-forms-scope select {
+      min-height: 2.5rem;
+      padding: 0.5rem 0.75rem;
+    }
+
+    .classic-forms-scope textarea {
+      padding: 0.5rem 0.75rem;
+    }
+
+    .classic-forms-scope input[type="text"]::placeholder,
+    .classic-forms-scope input[type="email"]::placeholder,
+    .classic-forms-scope textarea::placeholder {
+      color: hsl(var(--muted-foreground));
+      opacity: 0.85;
+    }
+
+    .classic-forms-scope input[type="text"]:focus,
+    .classic-forms-scope input[type="email"]:focus,
+    .classic-forms-scope textarea:focus,
+    .classic-forms-scope select:focus {
+      outline: none;
+      border-color: hsl(var(--ring));
+      box-shadow: 0 0 0 3px hsl(var(--ring) / 0.28);
+    }
+
+    /* Campos inline (no meio do texto) */
+    .classic-forms-scope input.inline {
+      min-height: auto;
+      padding: 0 0.35rem;
+      border-radius: 0;
+      border: none;
+      border-bottom: 1px solid hsl(var(--border));
+      background: transparent;
+    }
+
+    /* Campo inline no padrão do formulário (box) */
+    .classic-forms-scope .inline-field {
+      display: inline-block;
+      min-height: 2rem;
+      padding: 0.25rem 0.5rem;
+      border: 1px solid hsl(var(--border));
+      border-radius: 0.5rem;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      vertical-align: baseline;
+    }
+
+    .classic-forms-scope .inline-field:focus {
+      outline: none;
+      border-color: hsl(var(--ring));
+      box-shadow: 0 0 0 3px hsl(var(--ring) / 0.28);
+    }
+  `;
+
+  const getPrintableStylesHtml = () => {
+    const stylesheetLinks = Array.from(document.querySelectorAll<HTMLLinkElement>("link[rel='stylesheet']"))
+      .map((l) => `<link rel="stylesheet" href="${l.href}">`)
+      .join("\n");
+
+    const inlineStyles = Array.from(document.querySelectorAll<HTMLStyleElement>("style"))
+      .map((s) => `<style>${s.textContent ?? ""}</style>`)
+      .join("\n");
+
+    // Inclui também os estilos escopados (inputs/visual padrão)
+    const extra = `<style>${scopedStyles}\n${printStyles}</style>`;
+
+    return `${stylesheetLinks}\n${inlineStyles}\n${extra}`;
+  };
+
+  const validateRequiredFields = (): boolean => {
+    if (!formRef.current) return true;
+
+    const container = formRef.current;
+
+    // Por padrão: todo input/textarea/select (exceto checkbox/radio/botão/hidden) é obrigatório,
+    // a menos que esteja marcado como opcional.
+    const autoCandidates = Array.from(
+      container.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select")
+    ).filter((el) => {
+      if (el.hasAttribute("disabled")) return false;
+      if (el.getAttribute("aria-hidden") === "true") return false;
+      if (el.hasAttribute("data-optional")) return false;
+      if (el.closest("[data-optional-scope='true']")) return false;
+
+      if (el instanceof HTMLInputElement) {
+        const t = (el.type || "text").toLowerCase();
+        if (t === "checkbox" || t === "radio" || t === "button" || t === "submit" || t === "reset" || t === "hidden") {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // Campos marcados explicitamente como obrigatórios (ex.: checkbox/radio)
+    const explicitRequired = Array.from(
+      container.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("[data-required='true']")
+    ).filter((el) => !el.hasAttribute("data-optional") && !el.closest("[data-optional-scope='true']"));
+
+    const requiredEls = Array.from(new Set([...autoCandidates, ...explicitRequired]));
+
+    // Limpa marcações anteriores
+    requiredEls.forEach((el) => {
+      el.classList.remove("ring-2", "ring-red-500", "border-red-500", "bg-red-50");
+      el.removeAttribute("aria-invalid");
+    });
+
+    const isEmpty = (el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) => {
+      if (el instanceof HTMLInputElement) {
+        if (el.type === "checkbox" || el.type === "radio") return !el.checked;
+        return !el.value || el.value.trim() === "";
+      }
+      if (el instanceof HTMLTextAreaElement) return !el.value || el.value.trim() === "";
+      return !el.value;
+    };
+
+    const firstInvalid = requiredEls.find(isEmpty) || null;
+
+    if (firstInvalid) {
+      requiredEls.forEach((el) => {
+        if (isEmpty(el)) {
+          el.classList.add("ring-2", "ring-red-500", "border-red-500", "bg-red-50");
+          el.setAttribute("aria-invalid", "true");
+        }
+      });
+
+      mostrarToast("erro", "Preencha os campos em branco (eles serão destacados) antes de imprimir.");
+
+      try {
+        firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+      } catch {
+        // noop
+      }
+
+      if (typeof (firstInvalid as any).focus === "function") {
+        (firstInvalid as any).focus();
+      }
+
+      return false;
+    }
+
+    return true;
+  };
+
+  // (removido) copyStylesToPrintWindow: agora os estilos são injetados direto no HTML do print
+
+  // Atualizar activeForm quando initialFormId mudar
+  useEffect(() => {
+    if (initialFormId) {
+      setActiveForm(initialFormId);
+    }
+  }, [initialFormId]);
 
   const handlePrint = () => {
     if (!formRef.current) return;
+    if (!validateRequiredFields()) return;
+
+    // Preencher data automaticamente (horário de Brasília) SOMENTE para o campo de data final do formulário, NÃO para o campo de decisão
+    const { dia, mes, mesNome, ano } = getBrasiliaDate();
+    // Seleciona apenas o grupo de inputs de data que NÃO está dentro do DeferimentoBox (decisão)
+    const mainDateRow = Array.from(formRef.current.querySelectorAll<HTMLDivElement>(".flex.flex-wrap.items-center.gap-2.text-sm"))
+      .filter(div => !div.closest("[data-optional-scope='true']"))[0];
+    if (mainDateRow) {
+      const inputs = mainDateRow.querySelectorAll<HTMLInputElement>("input[type='text']");
+      inputs.forEach((input) => {
+        const placeholder = input.placeholder?.toLowerCase() || "";
+        const isEmpty = !input.value || input.value.trim() === "";
+        if (isEmpty) {
+          if (placeholder === "dd") {
+            input.value = dia;
+          } else if (placeholder === "mm" || placeholder === "mês" || placeholder === "mês" || placeholder === "mes") {
+            input.value = mesNome;
+          } else if (placeholder === "aaaa") {
+            input.value = ano;
+          }
+        }
+      });
+    }
 
     // Captura todos os valores dos campos
     const formContent = formRef.current.cloneNode(true) as HTMLElement;
     const originalInputs = formRef.current.querySelectorAll("input, textarea, select");
     const clonedInputs = formContent.querySelectorAll("input, textarea, select");
+
+    // Substituir os inputs de data finais por texto preenchido
+    const { dia: diaClone, mesNome: mesNomeClone, ano: anoClone } = getBrasiliaDate();
+    // Seleciona o grupo de data final (fora do DeferimentoBox)
+    const mainDateRowClone = Array.from(formContent.querySelectorAll<HTMLDivElement>(".flex.flex-wrap.items-center.gap-2.text-sm"))
+      .filter(div => !div.closest("[data-optional-scope='true']"))[0];
+    if (mainDateRowClone) {
+      // Substitui os inputs por spans com a data
+      const dateInputs = mainDateRowClone.querySelectorAll<HTMLInputElement>("input[type='text']");
+      dateInputs.forEach((input) => {
+        const placeholder = input.placeholder?.toLowerCase() || "";
+        let value = input.value;
+        if (!value || value.trim() === "") {
+          if (placeholder === "dd") value = diaClone;
+          else if (placeholder === "mm" || placeholder === "mês" || placeholder === "mes") value = mesNomeClone;
+          else if (placeholder === "aaaa") value = anoClone;
+        }
+        const span = document.createElement("span");
+        span.textContent = value;
+        input.replaceWith(span);
+      });
+    }
 
     originalInputs.forEach((input, index) => {
       const clonedInput = clonedInputs[index];
@@ -256,66 +536,125 @@ export function ClassicFormsView() {
     // Abre nova janela
     const printWindow = window.open("about:blank", "_blank");
     if (!printWindow) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Permita pop-ups para imprimir o formulário.",
-      });
+      mostrarToast("erro", "Permita pop-ups para imprimir o formulário.");
       return;
     }
 
+    const htmlClass = document.documentElement.className || "";
+    const bodyClass = document.body.className || "";
+
     printWindow.document.write(`
       <!DOCTYPE html>
-      <html lang="pt-BR">
+      <html lang="pt-BR" class="${htmlClass}">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Requerimento FUNSEP</title>
-        <style>${printStyles}</style>
+        <base href="${window.location.origin}/">
+        ${getPrintableStylesHtml()}
+        <style>
+          .print-button-overlay {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 9999;
+            background: #2a65b4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+          }
+          .print-button-overlay:hover {
+            background: #1e4a8a;
+            transform: scale(1.05);
+          }
+          @media print {
+            .print-button-overlay {
+              display: none !important;
+            }
+          }
+        </style>
       </head>
-      <body>
-        <div class="form-content">
+      <body class="${bodyClass}">
+        <button class="print-button-overlay no-print" onclick="window.print()">🖨️ Imprimir Formulário</button>
+        <div id="printable-content" class="form-content">
           ${formContent.innerHTML}
         </div>
+        <script>
+          (function () {
+            function waitAndPrint() {
+              try {
+                var links = Array.prototype.slice.call(document.querySelectorAll('link[rel="stylesheet"]'));
+                var pending = links.length;
+                var done = function () {
+                  pending--;
+                  if (pending <= 0) {
+                    setTimeout(function () { window.print(); }, 100);
+                  }
+                };
+                if (!pending) {
+                  setTimeout(function () { window.print(); }, 100);
+                  return;
+                }
+                links.forEach(function (l) {
+                  l.addEventListener('load', done);
+                  l.addEventListener('error', done);
+                });
+                // Fallback: imprime mesmo que algum CSS não carregue
+                setTimeout(function () { window.print(); }, 1200);
+              } catch (e) {
+                setTimeout(function () { window.print(); }, 200);
+              }
+            }
+            window.addEventListener('load', function () {
+              setTimeout(waitAndPrint, 50);
+            });
+          })();
+        </script>
       </body>
       </html>
     `);
     printWindow.document.close();
-
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-      }, 300);
-    };
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
-      {/* Sidebar */}
-      <aside className="w-full lg:w-72 shrink-0 bg-card rounded-lg border p-4 lg:p-6 lg:sticky lg:top-6 lg:h-fit">
-        <h2 className="text-base lg:text-lg font-semibold mb-4 text-primary border-b-2 border-primary/20 pb-3">
-          Selecione o Requerimento
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-1">
-          {forms.map((form) => (
-            <button
-              key={form.id}
-              onClick={() => setActiveForm(form.id)}
-              className={cn(
-                "w-full text-left px-3 py-2 lg:px-4 lg:py-3 rounded-md transition-all text-xs lg:text-sm flex items-center gap-2",
-                "hover:bg-primary/10 hover:translate-x-1",
-                activeForm === form.id && "bg-primary text-primary-foreground font-semibold"
-              )}
-            >
-              <span className="font-bold hidden lg:inline">▸</span>
-              {form.title}
-            </button>
-          ))}
-        </div>
-      </aside>
+    <div className="classic-forms-scope flex flex-col lg:flex-row gap-6">
+      <style>{scopedStyles}</style>
+      {/* Sidebar - Esconder quando hideSidebar for true */}
+      {!hideSidebar && (
+        <aside className="w-full lg:w-72 shrink-0 bg-card rounded-lg border p-4 lg:p-6 lg:sticky lg:top-6 lg:h-fit">
+          <h2 className="text-base lg:text-lg font-semibold mb-4 text-primary border-b-2 border-primary/20 pb-3">
+            Selecione o Requerimento
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-1">
+            {forms.map((form) => (
+              <button
+                key={form.id}
+                onClick={() => setActiveForm(form.id)}
+                className={cn(
+                  "w-full text-left px-3 py-2 lg:px-4 lg:py-3 rounded-md transition-all text-xs lg:text-sm flex items-center gap-2",
+                  "hover:bg-primary/10 hover:translate-x-1",
+                  activeForm === form.id && "bg-primary text-primary-foreground font-semibold"
+                )}
+              >
+                <span className="font-bold hidden lg:inline">▸</span>
+                {form.title}
+              </button>
+            ))}
+          </div>
+        </aside>
+      )}
 
       {/* Content */}
-      <main className="flex-1 bg-card rounded-lg border p-4 sm:p-6 lg:p-8 min-h-[500px]">
+      <main className={cn(
+        "bg-card rounded-lg border p-4 sm:p-6 lg:p-8 min-h-[500px]",
+        hideSidebar ? "w-full" : "flex-1"
+      )}>
         <div ref={formRef}>
           {activeForm === "exclusao-associado" && <ExclusaoAssociadoForm />}
           {activeForm === "exclusao-dependente" && <ExclusaoDependenteForm />}
@@ -346,7 +685,7 @@ export function ClassicFormsView() {
 // Componente base para caixa de deferimento
 function DeferimentoBox() {
   return (
-    <div className="border-2 border-primary rounded-lg p-4 bg-primary/5 mb-6">
+    <div className="avoid-break border-2 border-primary rounded-lg p-4 bg-primary/5 mb-6" data-optional-scope="true">
       <div className="text-center font-bold text-primary mb-3">DECISÃO</div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex gap-6">
@@ -361,9 +700,9 @@ function DeferimentoBox() {
         </div>
         <div className="flex items-center gap-2 text-sm">
           <label className="font-bold">Data:</label>
-          <input type="text" className="w-10 border border-primary/50 rounded px-1 py-0.5 text-center text-sm" maxLength={2} placeholder="DD" /> /
-          <input type="text" className="w-10 border border-primary/50 rounded px-1 py-0.5 text-center text-sm" maxLength={2} placeholder="MM" /> /
-          <input type="text" className="w-14 border border-primary/50 rounded px-1 py-0.5 text-center text-sm" maxLength={4} placeholder="AAAA" />
+          <input type="text" data-optional="true" className="w-10 border border-primary/50 rounded px-1 py-0.5 text-center text-sm" maxLength={2} placeholder="" /> /
+          <input type="text" data-optional="true" className="w-10 border border-primary/50 rounded px-1 py-0.5 text-center text-sm" maxLength={2} placeholder="" /> /
+          <input type="text" data-optional="true" className="w-14 border border-primary/50 rounded px-1 py-0.5 text-center text-sm" maxLength={4} placeholder="" />
         </div>
       </div>
     </div>
@@ -373,7 +712,7 @@ function DeferimentoBox() {
 // Componente para linha de assinatura
 function SignatureLine({ label = "Assinatura" }: { label?: string }) {
   return (
-    <div className="my-12 text-center">
+    <div className="signature-block avoid-break mt-8 mb-12 pt-10 text-center">
       <div className="w-64 border-t border-foreground mx-auto mb-2"></div>
       <p className="text-sm">{label}</p>
     </div>
@@ -392,7 +731,7 @@ function AlertBox({ message = "ATENÇÃO: TODOS OS CAMPOS DEVEM SER PREENCHIDOS,
 // Componente para caixa de informação
 function InfoBox({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-muted/50 border-l-4 border-primary p-4 rounded-r my-4 text-sm">
+    <div className="avoid-break bg-muted/50 border-l-4 border-primary p-4 rounded-r my-4 text-sm">
       {children}
     </div>
   );
@@ -413,18 +752,18 @@ function ExclusaoAssociadoForm() {
 
       <div className="space-y-4">
         <div>
-          <label className="block font-bold text-sm mb-1">Nome completo:</label>
-          <input type="text" className="w-full border rounded px-3 py-2" placeholder="Nome completo" />
+          <label className="block font-bold text-sm mb-1">Nome completo: <span className="text-red-600">*</span></label>
+          <input type="text" data-required="true" className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Nome completo" />
         </div>
 
         <div>
-          <label className="block font-bold text-sm mb-1">E-mail:</label>
-          <input type="email" className="w-full border rounded px-3 py-2" placeholder="seu@email.com" />
+          <label className="block font-bold text-sm mb-1">E-mail: <span className="text-red-600">*</span></label>
+          <input type="email" data-required="true" className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="seu@email.com" />
         </div>
 
         <div>
-          <label className="block font-bold text-sm mb-1">Telefone:</label>
-          <input type="text" className="w-full border rounded px-3 py-2" placeholder="(00) 00000-0000" />
+          <label className="block font-bold text-sm mb-1">Telefone: <span className="text-red-600">*</span></label>
+          <input type="text" data-required="true" className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="(00) 00000-0000" />
         </div>
       </div>
 
@@ -442,12 +781,12 @@ function ExclusaoAssociadoForm() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span>Em</span>
-        <input type="text" className="w-12 border rounded px-2 py-1 text-center" maxLength={2} placeholder="DD" />
+        <span>Em <span className="text-red-600">*</span></span>
+        <input type="text" data-required="true" className="w-12 border rounded px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-primary/30" maxLength={2} placeholder="DD" />
         <span>de</span>
-        <input type="text" className="w-28 border rounded px-2 py-1" placeholder="mês" />
+        <input type="text" data-required="true" className="w-28 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="mês" />
         <span>de</span>
-        <input type="text" className="w-16 border rounded px-2 py-1 text-center" maxLength={4} placeholder="AAAA" />
+        <input type="text" data-required="true" className="w-16 border rounded px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-primary/30" maxLength={4} placeholder="AAAA" />
       </div>
 
       <SignatureLine />
@@ -477,14 +816,24 @@ function ExclusaoDependenteForm() {
         </div>
 
         <div>
+          <label className="block font-bold text-sm mb-1">E-mail particular:</label>
+          <input type="email" className="w-full border rounded px-3 py-2" placeholder="seu@emailparticular.com" />
+        </div>
+
+        <div>
           <label className="block font-bold text-sm mb-1">Telefone:</label>
+          <input type="text" className="w-full border rounded px-3 py-2" placeholder="(00) 00000-0000" />
+        </div>
+
+        <div>
+          <label className="block font-bold text-sm mb-1">Celular:</label>
           <input type="text" className="w-full border rounded px-3 py-2" placeholder="(00) 00000-0000" />
         </div>
       </div>
 
       <p className="text-sm leading-relaxed text-justify mt-6">
         Abaixo assinado(a), servidor(a) vinculado(a) ao Poder Judiciário do Estado do Paraná, venho, respeitosamente, requerer a <strong>EXCLUSÃO</strong> de{" "}
-        <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-64" placeholder="nome do dependente" />,{" "}
+        <input type="text" className="inline-field w-64" placeholder="nome do dependente" />,{" "}
         meu(minha) dependente, do quadro de associados do Funsep, juntando, para tanto, carteira de beneficiário(a).
       </p>
 
@@ -513,6 +862,21 @@ function ExclusaoDependenteForm() {
 }
 
 function InclusaoAssociadoForm() {
+  const [dependentes, setDependentes] = useState<Array<{ id: string }>>([]);
+  const [acomodacao, setAcomodacao] = useState<"APARTAMENTO" | "ENFERMARIA" | "">("");
+
+  const addDependente = () => {
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? (crypto.randomUUID as () => string)()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    setDependentes((prev) => [...prev, { id }]);
+  };
+
+  const removeDependente = (id: string) => {
+    setDependentes((prev) => prev.filter((d) => d.id !== id));
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-center text-primary font-bold text-base sm:text-lg mb-6">
@@ -521,9 +885,62 @@ function InclusaoAssociadoForm() {
 
       <DeferimentoBox />
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block font-bold text-sm mb-1">
+            Nome completo <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            data-required="true"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            placeholder="Nome completo"
+          />
+        </div>
+
+        <div>
+          <label className="block font-bold text-sm mb-1">
+            E-mail <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="email"
+            data-required="true"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            placeholder="seu@email.com"
+          />
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <label className="block font-bold text-sm mb-2">
+          Tipo de acomodação <span className="text-red-600">*</span>
+        </label>
+        <div className="flex gap-6">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="acomodacao-inclusao"
+              checked={acomodacao === "APARTAMENTO"}
+              onChange={() => setAcomodacao("APARTAMENTO")}
+            />
+            Apartamento
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="acomodacao-inclusao"
+              checked={acomodacao === "ENFERMARIA"}
+              onChange={() => setAcomodacao("ENFERMARIA")}
+            />
+            Enfermaria
+          </label>
+        </div>
+        {/* Corrigir validação: só precisa de UM marcado, não ambos */}
+        <input type="hidden" data-required="true" value={acomodacao ? "ok" : ""} />
+      </div>
+
       <p className="text-sm leading-relaxed text-justify">
-        <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-64" placeholder="Nome completo" /> abaixo assinado(a), servidor(a) vinculado(a) ao Poder Judiciário do Estado do Paraná, e-mail{" "}
-        <input type="email" className="inline border-b border-foreground px-2 py-0.5 w-52" placeholder="email" /> vem, respeitosamente, <strong>REQUERER</strong> a sua <strong>INSCRIÇÃO</strong> no quadro de associados do Funsep, manifestando, desde já, concordância com o desconto, em folha de pagamento, dos valores das mensalidades correspondentes ao Plano e declarando, também: <strong>a)</strong> estar ciente de que, a partir da inscrição para o plano de assistência do Funsep, com a possibilidade de utilização da Unimed-Curitiba, (com participação de 25% em consultas, exames de alto custo, exames de rotina e procedimentos) conforme contrato firmado entre aquela empresa e o referido Fundo, passará a contribuir mensalmente com base em valores definidos por faixa etária e variáveis de acordo com o tipo de acomodação escolhido para internamentos – ( ) <strong>APARTAMENTO</strong> ou ( ) <strong>ENFERMARIA</strong>; e <strong>b)</strong> ter conhecimento dos prazos de carência estabelecidos na Instrução Normativa nº 1/99, editada pelo Conselho Diretor.
+        Abaixo assinado(a), servidor(a) vinculado(a) ao Poder Judiciário do Estado do Paraná, vem, respeitosamente, <strong>REQUERER</strong> a sua <strong>INSCRIÇÃO</strong> no quadro de associados do Funsep, manifestando, desde já, concordância com o desconto, em folha de pagamento, dos valores das mensalidades correspondentes ao Plano e declarando, também: <strong>a)</strong> estar ciente de que, a partir da inscrição para o plano de assistência do Funsep, com a possibilidade de utilização da Unimed-Curitiba, (com participação de 25% em consultas, exames de alto custo, exames de rotina e procedimentos) conforme contrato firmado entre aquela empresa e o referido Fundo, passará a contribuir mensalmente com base em valores definidos por faixa etária e variáveis de acordo com o tipo de acomodação escolhido para internamentos – ({acomodacao === "APARTAMENTO" ? "X" : " "}) <strong>APARTAMENTO</strong> ou ({acomodacao === "ENFERMARIA" ? "X" : " "}) <strong>ENFERMARIA</strong>; e <strong>b)</strong> ter conhecimento dos prazos de carência estabelecidos na Instrução Normativa nº 1/99, editada pelo Conselho Diretor.
       </p>
 
       <p className="text-sm leading-relaxed text-justify">
@@ -557,7 +974,7 @@ function InclusaoAssociadoForm() {
       <div className="border-t pt-6 mt-8">
         <h3 className="font-bold text-primary mb-4">Prazos de carência (conforme Instrução Normativa nº 1/99)</h3>
         <InfoBox>
-          <p className="mb-3"><strong>- Consultas e exames de patologia clínica</strong> – 30 dias após o pagamento da primeira mensalidade (desconto em folha)</p>
+          <p className="mb-3"><strong>- Consultas e exames de patologia clínica</strong> – 30 dias após o primeiro desconto (ex.: 1º desconto em janeiro, uso a partir de 1º de março)</p>
           <p className="mb-3"><strong>- Exames de diagnóstico e terapia, endoscopia diagnóstica em regime ambulatorial, exames radiológicos simples, histocitopatologia, exames e testes alergológicos, oftalmológicos, otorrinolaringológicos (exceto videolaringoestroboscopia), inaloterapia, provas de função pulmonar, teste ergométrico, procedimentos de reabilitação e fisioterapia</strong> - a partir do primeiro dia do terceiro mês seguinte ao pagamento da primeira mensalidade (desconto em folha)</p>
           <p className="mb-3"><strong>- Internamentos clínicos e cirúrgicos, procedimentos cirúrgicos em regime ambulatorial, quimioterapia, radioterapia, hemodiálise e diálise peritoneal, litotripsia, videolaringoscopia cirúrgica, exames e procedimentos especiais</strong> - a partir do primeiro dia do sexto mês seguinte ao pagamento da primeira mensalidade (desconto em folha)</p>
           <p><strong>- Parto a termo</strong> - a partir do primeiro dia do décimo mês seguinte ao pagamento da primeira mensalidade (desconto em folha).</p>
@@ -585,26 +1002,26 @@ function InclusaoAssociadoForm() {
         <div className="space-y-3">
           <div>
             <label className="block font-bold text-sm mb-1">NOME:</label>
-            <input type="text" className="w-full border rounded px-3 py-2" />
+            <input type="text" className="w-full border rounded px-3 py-2" data-optional="true" />
           </div>
 
           <div>
             <label className="block font-bold text-sm mb-1">ENDEREÇO:</label>
-            <input type="text" className="w-full border rounded px-3 py-2" />
+            <input type="text" className="w-full border rounded px-3 py-2" data-optional="true" />
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block font-bold text-sm mb-1">NÚMERO:</label>
-              <input type="text" className="w-full border rounded px-3 py-2" />
+              <input type="text" className="w-full border rounded px-3 py-2" data-optional="true" />
             </div>
             <div>
               <label className="block font-bold text-sm mb-1">APTO:</label>
-              <input type="text" className="w-full border rounded px-3 py-2" />
+              <input type="text" className="w-full border rounded px-3 py-2" data-optional="true" />
             </div>
             <div>
               <label className="block font-bold text-sm mb-1">BAIRRO:</label>
-              <input type="text" className="w-full border rounded px-3 py-2" />
+              <input type="text" className="w-full border rounded px-3 py-2" data-optional="true" />
             </div>
           </div>
 
@@ -712,11 +1129,151 @@ function InclusaoAssociadoForm() {
           </div>
         </div>
       </div>
+
+      {/* Dependentes (opcional) - manter no final */}
+      <div className="page-break">
+        <h3 className="font-bold text-primary mb-3">DEPENDENTES (OPCIONAL)</h3>
+
+        <div className="no-print">
+          <InfoBox>
+            <p className="mb-3">
+              Se desejar, clique em <strong>Adicionar dependente</strong>. Ao imprimir, a relação de dependentes será incluída.
+            </p>
+            <div className="flex items-center justify-center">
+              <button
+                type="button"
+                onClick={addDependente}
+                className="inline-flex items-center justify-center px-5 py-2.5 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+              >
+                + Adicionar dependente
+              </button>
+            </div>
+          </InfoBox>
+        </div>
+
+        {dependentes.length > 0 && (
+          <div className="mt-6">
+
+            <div className="space-y-4">
+              {dependentes.map((dep, idx) => (
+                <div key={dep.id} className="avoid-break relative rounded-lg border bg-muted/30 p-4">
+                  <div className="no-print absolute right-3 top-3">
+                    <button
+                      type="button"
+                      onClick={() => removeDependente(dep.id)}
+                      className="px-3 py-1.5 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+                    >
+                      Remover
+                    </button>
+                  </div>
+
+                  <p className="font-bold text-sm text-primary mb-4">Dependente {idx + 1}</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-bold text-sm mb-1">Nome completo:</label>
+                      <input type="text" className="w-full border rounded px-3 py-2" placeholder="Nome completo do dependente" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-bold text-sm mb-1">CPF:</label>
+                        <input type="text" className="w-full border rounded px-3 py-2" placeholder="000.000.000-00" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-sm mb-1">RG:</label>
+                        <input type="text" className="w-full border rounded px-3 py-2" placeholder="RG" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-bold text-sm mb-1">Sexo:</label>
+                        <input type="text" className="w-full border rounded px-3 py-2" placeholder="M/F" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-sm mb-1">Data de nascimento:</label>
+                        <input type="text" className="w-full border rounded px-3 py-2" placeholder="DD/MM/AAAA" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-sm mb-1">Parentesco:</label>
+                      <input type="text" className="w-full border rounded px-3 py-2" placeholder="Ex.: Filho(a), Cônjuge..." />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-sm mb-1">Data de expedição:</label>
+                      <input type="text" className="w-full border rounded px-3 py-2" placeholder="DD/MM/AAAA" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-bold text-sm mb-1">Estado (UF):</label>
+                        <input type="text" className="w-full border rounded px-3 py-2" placeholder="UF" maxLength={2} />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-sm mb-1">Órgão expedidor:</label>
+                        <input type="text" className="w-full border rounded px-3 py-2" placeholder="Órgão expedidor" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-bold text-sm mb-1">Nome da mãe:</label>
+                      <input type="text" className="w-full border rounded px-3 py-2" placeholder="Nome da mãe" />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-sm mb-1">Profissão:</label>
+                      <input type="text" className="w-full border rounded px-3 py-2" placeholder="Profissão" />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-sm mb-1">Escolaridade:</label>
+                      <input type="text" className="w-full border rounded px-3 py-2" placeholder="Escolaridade" />
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+        <label className="block font-bold text-sm mb-2">Tipo de acomodação: <span className="text-red-600">*</span></label>
+        <div className="flex gap-6">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="acomodacao-inc-dep"
+              checked={acomodacao === "Apartamento"}
+              onChange={() => setAcomodacao("Apartamento")}
+            />
+            Apartamento
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="acomodacao-inc-dep"
+              checked={acomodacao === "Enfermaria"}
+              onChange={() => setAcomodacao("Enfermaria")}
+            />
+            Enfermaria
+          </label>
+        </div>
+        {/* Corrigir validação: só precisa de UM marcado, não ambos */}
+        <input type="hidden" data-required="true" value={acomodacao ? "ok" : ""} />
+      </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function InclusaoDependenteForm() {
+  const [acomodacao, setAcomodacao] = useState<"Apartamento" | "Enfermaria" | "">("");
+
   return (
     <div className="space-y-4">
       <h2 className="text-center text-primary font-bold text-base sm:text-lg mb-6">
@@ -737,7 +1294,17 @@ function InclusaoDependenteForm() {
         </div>
 
         <div>
+          <label className="block font-bold text-sm mb-1">E-mail particular do titular:</label>
+          <input type="email" className="w-full border rounded px-3 py-2" placeholder="seu@emailparticular.com" />
+        </div>
+
+        <div>
           <label className="block font-bold text-sm mb-1">Telefone:</label>
+          <input type="text" className="w-full border rounded px-3 py-2" placeholder="(00) 00000-0000" />
+        </div>
+
+        <div>
+          <label className="block font-bold text-sm mb-1">Celular:</label>
           <input type="text" className="w-full border rounded px-3 py-2" placeholder="(00) 00000-0000" />
         </div>
 
@@ -749,9 +1316,9 @@ function InclusaoDependenteForm() {
 
       <p className="text-sm leading-relaxed text-justify mt-6">
         Abaixo-assinado(a), matrículado(a) nesse Fundo, vem, respeitosamente, <strong>REQUERER</strong> a <strong>inclusão</strong> de{" "}
-        <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-64" placeholder="nome do dependente" />,{" "}
-        com CPF <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-36" placeholder="000.000.000-00" />,{" "}
-        nome da mãe <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-52" placeholder="nome da mãe" />,{" "}
+        <input type="text" className="inline-field w-64" placeholder="nome do dependente" />,{" "}
+        com CPF <input type="text" className="inline-field w-36" placeholder="000.000.000-00" />,{" "}
+        nome da mãe <input type="text" className="inline-field w-52" placeholder="nome da mãe" />,{" "}
         como seu dependente, conforme comprova os documentos em anexo.
       </p>
 
@@ -760,15 +1327,34 @@ function InclusaoDependenteForm() {
       </p>
 
       <div className="mt-4">
-        <label className="block font-bold text-sm mb-2">Tipo de acomodação:</label>
+        <label className="block font-bold text-sm mb-1">Escolaridade do dependente:</label>
+        <input type="text" className="w-full border rounded px-3 py-2" placeholder="Escolaridade" />
+      </div>
+
+      <div className="mt-4">
+        <label className="block font-bold text-sm mb-2">Tipo de acomodação: <span className="text-red-600">*</span></label>
         <div className="flex gap-6">
           <label className="flex items-center gap-2 text-sm">
-            <input type="radio" name="acomodacao-inc-dep" /> Apartamento
+            <input
+              type="radio"
+              name="acomodacao-inc-dep"
+              checked={acomodacao === "Apartamento"}
+              onChange={() => setAcomodacao("Apartamento")}
+            />
+            Apartamento
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input type="radio" name="acomodacao-inc-dep" /> Enfermaria
+            <input
+              type="radio"
+              name="acomodacao-inc-dep"
+              checked={acomodacao === "Enfermaria"}
+              onChange={() => setAcomodacao("Enfermaria")}
+            />
+            Enfermaria
           </label>
         </div>
+        {/* Corrigir validação: só precisa de UM marcado, não ambos */}
+        <input type="hidden" data-required="true" value={acomodacao ? "ok" : ""} />
       </div>
 
       <div className="my-8">
@@ -794,11 +1380,36 @@ function InclusaoDependenteForm() {
         <p>2. Será cobrada na primeira mensalidade uma taxa de inscrição de R$ 30,00 (trinta reais) por pessoa.</p>
         <p>3. Para que seja efetuada a inscrição é necessário possuir margem consignável junto ao Departamento Econômico e Financeiro do TJ.</p>
       </InfoBox>
+
+      <div className="page-break">
+        <h3 className="font-bold text-primary mb-4 border-b border-primary/20 pb-2">Anexo I</h3>
+        <InfoBox>
+          <p><strong>Prazos de carência (conforme Instrução Normativa nº 1/99)</strong></p>
+          <p className="mt-3"><strong>- Consultas e exames de patologia clínica</strong> - 30 dias após o primeiro desconto (ex.: 1º desconto em janeiro, uso a partir de 1º de março).</p>
+          <p className="mt-2"><strong>- Exames de diagnóstico e terapia, endoscopia diagnóstica em regime ambulatorial, exames radiológicos simples, histocitopatologia, exames e testes alergológicos, oftalmológicos, otorrinolaringológicos (exceto videolaringoestroboscopia), inaloterapia, provas de função pulmonar, teste ergométrico, procedimentos de reabilitação e fisioterapia</strong> - a partir do primeiro dia do terceiro mês seguinte ao pagamento da primeira mensalidade.</p>
+          <p className="mt-2"><strong>- Internamentos clínicos e cirúrgicos, procedimentos cirúrgicos em regime ambulatorial, quimioterapia, radioterapia, hemodiálise e diálise peritoneal, litotripsia, videolaringoscopia cirúrgica, exames e procedimentos especiais</strong> - a partir do primeiro dia do sexto mês seguinte ao pagamento da primeira mensalidade.</p>
+          <p className="mt-2"><strong>- Parto a termo</strong> - a partir do primeiro dia do décimo mês seguinte ao pagamento da primeira mensalidade.</p>
+        </InfoBox>
+      </div>
+
+      <div className="page-break">
+        <h3 className="font-bold text-primary mb-4 border-b border-primary/20 pb-2">Anexo II</h3>
+        <InfoBox>
+          <p><strong>Documentos necessários:</strong></p>
+          <p className="mt-2">· <strong>RG e CPF (cópia autenticada)</strong> - em caso de inclusão de crianças, caso não possua RG, pode-se substituir pela Certidão de Nascimento (2ª via);</p>
+          <p className="mt-2">· <strong>Certidão de Casamento (2ª via datada de até 180 dias)</strong>, ou <strong>Escritura Pública de União Estável (2ª via datada de até 180 dias)</strong> - quando a inclusão for de companheiro(a);</p>
+          <p className="mt-2">· <strong>Comprovante de endereço atualizado;</strong></p>
+          <p className="mt-2">· <strong>Contracheque.</strong></p>
+          <p className="mt-3"><strong>OBS: Os documentos deverão ser enviados através dos Correios.</strong></p>
+        </InfoBox>
+      </div>
     </div>
   );
 }
 
 function InclusaoRecemNascidoForm() {
+  const [acomodacao, setAcomodacao] = useState<"Apartamento" | "Enfermaria" | "">("");
+
   return (
     <div className="space-y-4">
       <h2 className="text-center text-primary font-bold text-base sm:text-lg mb-6">
@@ -826,20 +1437,34 @@ function InclusaoRecemNascidoForm() {
 
       <p className="text-sm leading-relaxed text-justify mt-6">
         Abaixo-assinado(a), matriculado(a) nesse Fundo de Saúde, vem, respeitosamente, requerer a inclusão de{" "}
-        <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-64" placeholder="nome do recém-nascido" />,{" "}
+        <input type="text" className="inline-field w-64" placeholder="nome do recém-nascido" />,{" "}
         como seu(sua) dependente, conforme atestam os documentos em anexo.
       </p>
 
       <div className="mt-4">
-        <label className="block font-bold text-sm mb-2">Tipo de acomodação:</label>
+        <label className="block font-bold text-sm mb-2">Tipo de acomodação: <span className="text-red-600">*</span></label>
         <div className="flex gap-6">
           <label className="flex items-center gap-2 text-sm">
-            <input type="radio" name="acomodacao-recem" /> Apartamento
+            <input
+              type="radio"
+              name="acomodacao-recem"
+              checked={acomodacao === "Apartamento"}
+              onChange={() => setAcomodacao("Apartamento")}
+            />
+            Apartamento
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input type="radio" name="acomodacao-recem" /> Enfermaria
+            <input
+              type="radio"
+              name="acomodacao-recem"
+              checked={acomodacao === "Enfermaria"}
+              onChange={() => setAcomodacao("Enfermaria")}
+            />
+            Enfermaria
           </label>
         </div>
+        {/* Corrigir validação: só precisa de UM marcado, não ambos */}
+        <input type="hidden" data-required="true" value={acomodacao ? "ok" : ""} />
       </div>
 
       <InfoBox>
@@ -871,6 +1496,8 @@ function InclusaoRecemNascidoForm() {
 }
 
 function InscricaoPensionistaForm() {
+  const [acomodacao, setAcomodacao] = useState<"apartamento" | "enfermaria" | "">("");
+
   return (
     <div className="space-y-4">
       <h2 className="text-center text-primary font-bold text-base sm:text-lg mb-6">
@@ -893,12 +1520,36 @@ function InscricaoPensionistaForm() {
 
       <p className="text-sm leading-relaxed text-justify mt-6">
         Abaixo assinado(a), vem, respeitosamente, <strong>REQUERER</strong> a sua <strong>inscrição</strong> como pensionista nesse Fundo de Saúde, tendo em vista o falecimento de{" "}
-        <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-64" placeholder="nome do falecido" />,{" "}
+        <input type="text" className="inline-field w-64" placeholder="nome do falecido" />,{" "}
         conforme cópia de certidão de óbito em anexo.
       </p>
 
+      <div className="mt-4">
+        <label className="block font-bold text-sm mb-2">Tipo de acomodação:</label>
+        <div className="flex gap-6">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="acomodacao-pensionista"
+              checked={acomodacao === "apartamento"}
+              onChange={() => setAcomodacao("apartamento")}
+            />
+            Apartamento
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="acomodacao-pensionista"
+              checked={acomodacao === "enfermaria"}
+              onChange={() => setAcomodacao("enfermaria")}
+            />
+            Enfermaria
+          </label>
+        </div>
+      </div>
+
       <p className="text-sm leading-relaxed text-justify">
-        Declaro: <strong>a)</strong> que concorda em pagar através boleto bancário os valores correspondentes à mensalidade devida por força da inscrição, definidos em tabela variável por faixa etária e de acordo com o tipo de acomodação escolhido para internamentos - [ ] apartamento ou [ ] enfermaria; e <strong>b)</strong> que tem conhecimento dos prazos de carência estabelecidos na Instrução Normativa nº 1/99.
+        Declaro: <strong>a)</strong> que concorda em pagar através boleto bancário os valores correspondentes à mensalidade devida por força da inscrição, definidos em tabela variável por faixa etária e de acordo com o tipo de acomodação escolhido para internamentos - [{acomodacao === "apartamento" ? "X" : " "}] apartamento ou [{acomodacao === "enfermaria" ? "X" : " "}] enfermaria; e <strong>b)</strong> que tem conhecimento dos prazos de carência estabelecidos na Instrução Normativa nº 1/99.
       </p>
 
       <div className="my-8">
@@ -955,7 +1606,7 @@ function Requerimento21AnosForm() {
 
       <p className="text-sm leading-relaxed text-justify mt-6">
         Abaixo-assinado, nesse Fundo de Saúde, vem respeitosamente solicitar a permanência de{" "}
-        <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-64" placeholder="nome do dependente" />,{" "}
+        <input type="text" className="inline-field w-64" placeholder="nome do dependente" />,{" "}
         meu dependente, conforme comprovantes em anexo, referente ao(s) critério(s) abaixo relacionado(s):
       </p>
 
@@ -1109,7 +1760,7 @@ function RequerimentoReembolsoForm() {
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" /> Outros:{" "}
-          <input type="text" className="border rounded px-2 py-1 w-48" />
+          <input type="text" data-optional="true" className="border rounded px-2 py-1 w-48" />
         </label>
       </div>
 
@@ -1121,7 +1772,7 @@ function RequerimentoReembolsoForm() {
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input type="radio" name="protocolo-reemb" /> Sim{" "}
-            <input type="text" className="border rounded px-2 py-1 w-32" placeholder="Nº do protocolo" />
+            <input type="text" data-optional="true" className="border rounded px-2 py-1 w-32" placeholder="Nº do protocolo" />
           </label>
         </div>
       </div>
@@ -1207,10 +1858,10 @@ function TermoCienciaForm() {
       <DeferimentoBox />
 
       <p className="text-sm leading-relaxed text-justify">
-        EU, <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-64" placeholder="Nome completo" />,{" "}
-        E-MAIL <input type="email" className="inline border-b border-foreground px-2 py-0.5 w-48" placeholder="email" />,{" "}
-        PORTADOR DO RG Nº <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-28" placeholder="0.000.000-0" />{" "}
-        E INSCRITO NO CPF SOB Nº <input type="text" className="inline border-b border-foreground px-2 py-0.5 w-32" placeholder="000.000.000-00" />,{" "}
+        EU, <input type="text" className="inline-field w-64" placeholder="Nome completo" />,{" "}
+        E-MAIL <input type="email" className="inline-field w-48" placeholder="email" />,{" "}
+        PORTADOR DO RG Nº <input type="text" className="inline-field w-28" placeholder="0.000.000-0" />{" "}
+        E INSCRITO NO CPF SOB Nº <input type="text" className="inline-field w-32" placeholder="000.000.000-00" />,{" "}
         ASSOCIADO DESTE FUNSEP- FUNDO DE SAÚDE DOS SERVIDORES DO PODER JUDICIÁRIO – CNPJ 77.750.354/0001-88,
         ESTOU CIENTE QUE O PLANO DE SAÚDE QUE ADQUIRI JUNTO A ESTE FUNDO, É DE CUSTO OPERACIONAL,
         POSSIBILITANDO A UTILIZAÇÃO DA UNIMED-CURITIBA – PLANO DE COBERTURA NACIONAL,
@@ -1254,6 +1905,19 @@ function TermoCienciaForm() {
 }
 
 function TermoOpcaoForm() {
+  const [acomodacaoTitular, setAcomodacaoTitular] = useState<"Apartamento" | "Enfermaria" | "">("");
+  const [acomodacoesDependentes, setAcomodacoesDependentes] = useState<Record<number, "Apartamento" | "Enfermaria" | "">>({
+    1: "",
+    2: "",
+    3: "",
+    4: "",
+    5: "",
+  });
+
+  const setAcomodacaoDependente = (num: number, value: "Apartamento" | "Enfermaria") => {
+    setAcomodacoesDependentes((prev) => ({ ...prev, [num]: value }));
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-center text-primary font-bold text-base sm:text-lg mb-6">
@@ -1289,7 +1953,17 @@ function TermoOpcaoForm() {
         </div>
 
         <div>
+          <label className="block font-bold text-sm mb-1">E-mail particular:</label>
+          <input type="email" className="w-full border rounded px-3 py-2" />
+        </div>
+
+        <div>
           <label className="block font-bold text-sm mb-1">Telefone:</label>
+          <input type="text" className="w-48 border rounded px-3 py-2" />
+        </div>
+
+        <div>
+          <label className="block font-bold text-sm mb-1">Celular:</label>
           <input type="text" className="w-48 border rounded px-3 py-2" />
         </div>
       </div>
@@ -1301,23 +1975,47 @@ function TermoOpcaoForm() {
       <h3 className="font-bold text-primary mt-6">TITULAR:</h3>
       <div className="flex gap-6 mt-2">
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" /> Apartamento
+          <input
+            type="radio"
+            name="acomodacao-titular"
+            checked={acomodacaoTitular === "Apartamento"}
+            onChange={() => setAcomodacaoTitular("Apartamento")}
+          />
+          Apartamento
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" /> Enfermaria
+          <input
+            type="radio"
+            name="acomodacao-titular"
+            checked={acomodacaoTitular === "Enfermaria"}
+            onChange={() => setAcomodacaoTitular("Enfermaria")}
+          />
+          Enfermaria
         </label>
       </div>
 
       {[1, 2, 3, 4, 5].map((num) => (
         <div key={num} className="mt-4">
           <h3 className="font-bold text-primary">DEPENDENTE {num}:</h3>
-          <input type="text" className="w-full border rounded px-3 py-2 mt-2" placeholder={`Nome completo do dependente ${num}`} />
+          <input type="text" data-optional="true" className="w-full border rounded px-3 py-2 mt-2" placeholder={`Nome completo do dependente ${num}`} />
           <div className="flex gap-6 mt-2">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" /> Apartamento
+              <input
+                type="radio"
+                name={`acomodacao-dep-${num}`}
+                checked={acomodacoesDependentes[num] === "Apartamento"}
+                onChange={() => setAcomodacaoDependente(num, "Apartamento")}
+              />
+              Apartamento
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" /> Enfermaria
+              <input
+                type="radio"
+                name={`acomodacao-dep-${num}`}
+                checked={acomodacoesDependentes[num] === "Enfermaria"}
+                onChange={() => setAcomodacaoDependente(num, "Enfermaria")}
+              />
+              Enfermaria
             </label>
           </div>
         </div>

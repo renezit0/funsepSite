@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Newspaper, Calendar, ArrowLeft } from "lucide-react";
+import { Newspaper, Calendar, ArrowRight, User, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,8 +16,10 @@ interface Noticia {
   conteudo: string;
   categoria: string;
   imagem_url: string | null;
-  data_publicacao: string;
+  data_publicacao: string | null;
   created_at: string;
+  updated_at: string;
+  secao?: string;
 }
 
 export function NewsPage() {
@@ -34,9 +37,12 @@ export function NewsPage() {
         .from('noticias')
         .select('*')
         .eq('publicado', true)
-        .order('data_publicacao', { ascending: false });
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao carregar notícias:', error);
+        throw error;
+      }
       setNoticias(data || []);
     } catch (error) {
       console.error('Erro ao carregar notícias:', error);
@@ -44,6 +50,24 @@ export function NewsPage() {
       setLoading(false);
     }
   };
+
+  const SkeletonCard = () => (
+    <div className="noticia-card">
+      <div className="noticia-card-content">
+        <div className="noticia-card-header">
+          <div className="skeleton-shimmer h-6 w-20 rounded"></div>
+          <div className="skeleton-shimmer h-4 w-24 rounded"></div>
+        </div>
+        <div className="skeleton-shimmer h-12 w-full rounded"></div>
+        <div className="space-y-2">
+          <div className="skeleton-shimmer h-4 w-full rounded"></div>
+          <div className="skeleton-shimmer h-4 w-full rounded"></div>
+          <div className="skeleton-shimmer h-4 w-3/4 rounded"></div>
+        </div>
+        <div className="skeleton-shimmer h-4 w-20 rounded"></div>
+      </div>
+    </div>
+  );
 
   const getCategoryColor = (categoria: string) => {
     const colors: Record<string, string> = {
@@ -56,75 +80,6 @@ export function NewsPage() {
     return colors[categoria] || 'bg-gray-500';
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-8">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center py-8">Carregando notícias...</div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Visualização de notícia individual
-  if (selectedNoticia) {
-    return (
-      <div className="space-y-6">
-        <Button 
-          variant="ghost" 
-          onClick={() => setSelectedNoticia(null)}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar para notícias
-        </Button>
-
-        <Card>
-          <CardContent className="p-6 md:p-8">
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <Badge className={`${getCategoryColor(selectedNoticia.categoria)} text-white`}>
-                {selectedNoticia.categoria}
-              </Badge>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                Publicado em {format(new Date(selectedNoticia.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-              </div>
-            </div>
-            
-            <h1 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">
-              {selectedNoticia.titulo}
-            </h1>
-            
-            <div 
-              className="ql-editor prose prose-lg max-w-none dark:prose-invert
-                prose-headings:text-foreground 
-                prose-p:text-foreground/90 
-                prose-a:text-primary 
-                prose-strong:text-foreground
-                prose-ul:text-foreground/90
-                prose-ol:text-foreground/90
-                [&_table]:w-full [&_table]:border-collapse [&_table]:border [&_table]:border-border
-                [&_td]:border [&_td]:border-border [&_td]:p-2
-                [&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:bg-muted [&_th]:font-semibold
-                [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-4
-                mb-6"
-              dangerouslySetInnerHTML={{ __html: selectedNoticia.conteudo }}
-            />
-            
-            {selectedNoticia.imagem_url && (
-              <img
-                src={selectedNoticia.imagem_url}
-                alt={selectedNoticia.titulo}
-                className="w-full h-auto rounded-lg mt-6"
-              />
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   // Lista de notícias
   return (
@@ -139,55 +94,124 @@ export function NewsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {noticias.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhuma notícia publicada no momento.
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {noticias.map((noticia) => (
-                <Card key={noticia.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4 mb-4">
-                      <Badge className={`${getCategoryColor(noticia.categoria)} text-white`}>
+          <div className="noticias-grid">
+            {loading ? (
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
+            ) : noticias.length === 0 ? (
+              <div className="col-span-full text-center py-8 text-muted-foreground">
+                Nenhuma notícia publicada no momento.
+              </div>
+            ) : (
+              noticias.map((noticia) => (
+                <div key={noticia.id} className="noticia-card">
+                  <div className="noticia-card-content">
+                    <div className="noticia-card-header">
+                      <Badge className={`${getCategoryColor(noticia.categoria)} text-white text-xs`}>
                         {noticia.categoria}
                       </Badge>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        {format(new Date(noticia.data_publicacao), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {format(new Date(noticia.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </div>
                     </div>
-                    
-                    <h3 className="text-lg font-semibold mb-3 text-foreground">
+                    <h3 className="noticia-card-titulo">
                       {noticia.titulo}
                     </h3>
-                    
-                    <p className="text-muted-foreground mb-4 leading-relaxed">
+                    <p className="noticia-card-resumo">
                       {noticia.resumo}
                     </p>
-                    
-                    {noticia.imagem_url && (
-                      <div className="mb-4">
-                        <img
-                          src={noticia.imagem_url}
-                          alt={noticia.titulo}
-                          className="w-full h-auto rounded-lg"
-                        />
+                    <Dialog open={selectedNoticia?.id === noticia.id} onOpenChange={(open) => !open && setSelectedNoticia(null)}>
+                      <div className="flex">
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto text-primary font-semibold text-sm inline-flex items-center gap-1.5 hover:gap-2.5 transition-all"
+                          onClick={() => setSelectedNoticia(noticia)}
+                        >
+                          Leia mais
+                          <ArrowRight className="h-3 w-3" />
+                        </Button>
                       </div>
-                    )}
-                    
-                    <Button 
-                      variant="link" 
-                      className="p-0 h-auto text-primary"
-                      onClick={() => setSelectedNoticia(noticia)}
-                    >
-                      Leia mais
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[90vw] md:max-w-4xl max-h-[85vh] p-0 gap-0 overflow-y-auto">
+                        <div className="p-3 sm:p-4 md:p-6">
+                          <DialogHeader className="space-y-3 sm:space-y-4 mb-4">
+                            <div className="flex items-center gap-2">
+                              <Badge className={`${getCategoryColor(noticia.categoria)} text-white text-xs sm:text-sm`}>
+                                {noticia.categoria}
+                              </Badge>
+                            </div>
+                            <DialogTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold leading-tight pr-8">
+                              {noticia.titulo}
+                            </DialogTitle>
+
+                            <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground border-b pb-3 sm:pb-4">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                <span className="break-words">Publicado em {format(new Date(noticia.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                              </div>
+                              {noticia.secao && (
+                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                  <User className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                  <span>Por {noticia.secao}</span>
+                                </div>
+                              )}
+                            </div>
+                          </DialogHeader>
+
+                          <div className="space-y-4 sm:space-y-6">
+                          <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
+                            <p className="text-muted-foreground italic text-sm sm:text-base leading-relaxed">
+                              {noticia.resumo}
+                            </p>
+                          </div>
+
+                          <div
+                            className="prose prose-sm sm:prose-base max-w-none dark:prose-invert
+                              prose-headings:text-foreground
+                              prose-p:text-foreground/90
+                              prose-a:text-primary
+                              prose-strong:text-foreground
+                              prose-ul:text-foreground/90
+                              prose-ol:text-foreground/90
+                              [&_table]:w-full [&_table]:border-collapse [&_table]:border [&_table]:border-border
+                              [&_td]:border [&_td]:border-border [&_td]:p-2 [&_td]:text-sm
+                              [&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:bg-muted [&_th]:font-semibold [&_th]:text-sm
+                              [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-4"
+                            dangerouslySetInnerHTML={{ __html: noticia.conteudo }}
+                          />
+
+                          {noticia.imagem_url && (
+                            <div className="mt-4 sm:mt-6">
+                              <img
+                                src={noticia.imagem_url}
+                                alt={noticia.titulo}
+                                className="w-full max-w-full h-auto rounded-lg object-contain"
+                                style={{ maxHeight: '600px' }}
+                              />
+                            </div>
+                          )}
+
+                            {noticia.updated_at && noticia.updated_at !== noticia.created_at && (
+                              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-amber-600 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t">
+                                <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                <span className="break-words">Editado em {format(new Date(noticia.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

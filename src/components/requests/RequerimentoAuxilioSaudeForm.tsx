@@ -1,6 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RequestDocumentUpload } from "@/components/RequestDocumentUpload";
+import { useFeedback } from "@/contexts/FeedbackContext";
 
 interface FormProps {
   formData: any;
@@ -10,6 +11,16 @@ interface FormProps {
 }
 
 export function RequerimentoAuxilioSaudeForm({ formData, updateFormData, handleDocumentUpload, getDocument }: FormProps) {
+  const { mostrarToast } = useFeedback();
+
+  const validateField = (fieldName: string, fieldLabel: string) => {
+    if (!formData[fieldName] || (typeof formData[fieldName] === "string" && formData[fieldName].trim() === "")) {
+      mostrarToast("erro", `Por favor, preencha o campo: ${fieldLabel}`);
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">

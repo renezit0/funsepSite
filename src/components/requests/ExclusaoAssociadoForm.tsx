@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useFeedback } from "@/contexts/FeedbackContext";
 
 interface FormProps {
   formData: any;
@@ -9,6 +10,16 @@ interface FormProps {
 }
 
 export function ExclusaoAssociadoForm({ formData, updateFormData }: FormProps) {
+  const { mostrarToast } = useFeedback();
+
+  const validateField = (fieldName: string, fieldLabel: string) => {
+    if (!formData[fieldName] || (typeof formData[fieldName] === "string" && formData[fieldName].trim() === "")) {
+      mostrarToast("erro", `Por favor, preencha o campo: ${fieldLabel}`);
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div className="space-y-4">
       <Alert>
@@ -20,31 +31,34 @@ export function ExclusaoAssociadoForm({ formData, updateFormData }: FormProps) {
 
       <div className="space-y-2">
         <Label>Nome Completo *</Label>
-        <Input 
-          value={formData.nome} 
-          onChange={(e) => updateFormData("nome", e.target.value)} 
-          required 
+        <Input
+          value={formData.nome}
+          onChange={(e) => updateFormData("nome", e.target.value)}
+          onBlur={() => validateField("nome", "Nome Completo")}
+          required
         />
       </div>
 
       <div className="space-y-2">
         <Label>Telefone para Contato *</Label>
-        <Input 
+        <Input
           type="tel"
-          value={formData.telefone || ""} 
-          onChange={(e) => updateFormData("telefone", e.target.value)} 
+          value={formData.telefone || ""}
+          onChange={(e) => updateFormData("telefone", e.target.value)}
+          onBlur={() => validateField("telefone", "Telefone para Contato")}
           placeholder="(41) 99999-9999"
-          required 
+          required
         />
       </div>
 
       <div className="space-y-2">
         <Label>Data *</Label>
-        <Input 
-          type="date" 
-          value={formData.data || ""} 
-          onChange={(e) => updateFormData("data", e.target.value)} 
-          required 
+        <Input
+          type="date"
+          value={formData.data || ""}
+          onChange={(e) => updateFormData("data", e.target.value)}
+          onBlur={() => validateField("data", "Data")}
+          required
         />
       </div>
 

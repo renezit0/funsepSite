@@ -15,3 +15,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Exportar constantes para uso em chamadas diretas de API
+export const SUPABASE_CONFIG = {
+  url: SUPABASE_URL,
+  key: SUPABASE_PUBLISHABLE_KEY
+};

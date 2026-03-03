@@ -100,9 +100,9 @@ export function InstructionsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-4">
             <div className="border-l-4 border-green-500 pl-4">
-              <h4 className="font-semibold text-foreground mb-2">Imediato</h4>
+              <h4 className="font-semibold text-foreground mb-2">30 dias</h4>
               <p className="text-sm text-muted-foreground">
-                <strong>Consultas e exames de patologia clínica:</strong> a partir do primeiro dia útil do mês seguinte ao pagamento da mensalidade.
+                <strong>Consultas e exames de patologia clínica:</strong> 30 dias após o primeiro desconto (ex.: 1º desconto em janeiro, uso a partir de 1º de março).
               </p>
             </div>
             

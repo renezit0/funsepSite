@@ -5,6 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function formatCentavosToBRL(value: number | null | undefined): string {
+  const centavos = Number.isFinite(value as number) ? Number(value) : 0
+  return (centavos / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -95,6 +105,9 @@ Deno.serve(async (req) => {
         tipo_relatorio: relatorio.tipo_relatorio,
         data_inicio: relatorio.data_inicio,
         data_fim: relatorio.data_fim,
+        valor_total_centavos: relatorio.valor_total_centavos ?? 0,
+        valor_total_formatado: formatCentavosToBRL(relatorio.valor_total_centavos ?? 0),
+        detalhes_relatorio: relatorio.detalhes_relatorio ?? {},
         gerado_em: relatorio.gerado_em,
         visualizacoes: relatorio.visualizacoes + 1,
         ultima_visualizacao: new Date().toISOString(),

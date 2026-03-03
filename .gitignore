@@ -25,3 +25,8 @@ latest.yml
 *.njsproj
 *.sln
 *.sw?
+
+# Local and sensitive files
+.env
+.claude/
+*.pdf

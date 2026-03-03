@@ -98,7 +98,7 @@ export function SobreFunsepPage({ slug: propSlug }: SobreFunsepPageProps = {}) {
       // Check if line is a table row
       if (line.startsWith('|') && line.endsWith('|')) {
         if (!inTable) {
-          processedLines.push('<div class="my-6 overflow-x-auto flex justify-center"><table class="border-collapse border border-border">');
+          processedLines.push('<div class="my-4 sm:my-6 w-full max-w-full overflow-x-auto -mx-2 sm:-mx-4"><div class="inline-block min-w-full"><table class="border-collapse border border-border w-full max-w-full table-fixed">');
           inTable = true;
         }
         
@@ -114,32 +114,32 @@ export function SobreFunsepPage({ slug: propSlug }: SobreFunsepPageProps = {}) {
         processedLines.push('<tr>');
         cells.forEach(cell => {
           if (isHeader) {
-            processedLines.push(`<th class="border border-border px-4 py-2 bg-muted font-semibold text-left">${cell}</th>`);
+            processedLines.push(`<th class="border border-border px-2 sm:px-4 py-1.5 sm:py-2 bg-muted font-semibold text-left text-xs sm:text-sm break-words">${cell}</th>`);
           } else {
-            processedLines.push(`<td class="border border-border px-4 py-2">${cell}</td>`);
+            processedLines.push(`<td class="border border-border px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm break-words">${cell}</td>`);
           }
         });
         processedLines.push('</tr>');
       } else {
         if (inTable) {
-          processedLines.push('</table></div>');
+          processedLines.push('</table></div></div>');
           inTable = false;
         }
         
         // Convert list items (support both - and ✦)
         if (line.startsWith('- ') || line.startsWith('✦ ')) {
-          if (processedLines[processedLines.length - 1] !== '<ul class="my-4 space-y-2 list-disc list-inside">') {
-            processedLines.push('<ul class="my-4 space-y-2 list-disc list-inside">');
+          if (processedLines[processedLines.length - 1] !== '<ul class="my-3 sm:my-4 space-y-1 sm:space-y-2 list-disc list-inside text-sm sm:text-base">') {
+            processedLines.push('<ul class="my-3 sm:my-4 space-y-1 sm:space-y-2 list-disc list-inside text-sm sm:text-base">');
           }
           const itemText = line.startsWith('- ') ? line.substring(2) : line.substring(2);
-          processedLines.push(`<li>${itemText}</li>`);
+          processedLines.push(`<li class="break-words">${itemText}</li>`);
         } else if (processedLines[processedLines.length - 1]?.startsWith('<ul')) {
           processedLines.push('</ul>');
           if (line) {
-            processedLines.push(`<p class="mb-4 leading-relaxed">${line}</p>`);
+            processedLines.push(`<p class="mb-3 sm:mb-4 leading-relaxed text-sm sm:text-base break-words">${line}</p>`);
           }
         } else if (line) {
-          processedLines.push(`<p class="mb-4 leading-relaxed">${line}</p>`);
+          processedLines.push(`<p class="mb-3 sm:mb-4 leading-relaxed text-sm sm:text-base break-words">${line}</p>`);
         } else {
           // Empty line - add spacing
           processedLines.push('<div class="h-2"></div>');
@@ -148,7 +148,7 @@ export function SobreFunsepPage({ slug: propSlug }: SobreFunsepPageProps = {}) {
     }
     
     if (inTable) {
-      processedLines.push('</table></div>');
+      processedLines.push('</table></div></div>');
     }
     
     if (processedLines[processedLines.length - 1]?.startsWith('<ul')) {
@@ -160,14 +160,14 @@ export function SobreFunsepPage({ slug: propSlug }: SobreFunsepPageProps = {}) {
 
   // Render content
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-3xl">{secao.titulo}</CardTitle>
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
+      <Card className="w-full max-w-full overflow-x-hidden">
+        <CardHeader className="px-3 sm:px-6">
+          <CardTitle className="text-xl sm:text-2xl lg:text-3xl break-words">{secao.titulo}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6 w-full max-w-full overflow-x-hidden">
           <div 
-            className="prose prose-base lg:prose-lg max-w-none dark:prose-invert text-foreground"
+            className="prose prose-sm sm:prose-base lg:prose-lg max-w-none dark:prose-invert text-foreground w-full max-w-full overflow-x-hidden"
             dangerouslySetInnerHTML={{ 
               __html: formatContent(secao.conteudo)
             }}

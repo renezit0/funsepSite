@@ -33,6 +33,7 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
     secao: "",
     senha: "",
     cpf: "",
+    telefone: "",
   });
   const [loading, setLoading] = useState(false);
   const { mostrarToast, mostrarFeedback } = useFeedback();
@@ -57,6 +58,7 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
           secao: formData.secao || null,
           senha: formData.senha,
           cpf: formData.cpf || null,
+          telefone: formData.telefone.replace(/\D/g, "") || null,
           status: 'ATIVO'
         });
 
@@ -77,6 +79,7 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
         secao: "",
         senha: "",
         cpf: "",
+        telefone: "",
       });
       onUserAdded();
       onOpenChange(false);
@@ -90,10 +93,10 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Cadastrar Novo Usuário</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-base sm:text-lg">Cadastrar Novo Usuário</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Preencha os dados do novo usuário do sistema
           </DialogDescription>
         </DialogHeader>
@@ -130,6 +133,17 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
               value={formData.cpf}
               onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
               placeholder="Somente números"
+              maxLength={11}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="telefone">Telefone (WhatsApp)</Label>
+            <Input
+              id="telefone"
+              value={formData.telefone}
+              onChange={(e) => setFormData({ ...formData, telefone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+              placeholder="DDD + número (somente números)"
               maxLength={11}
             />
           </div>
@@ -177,16 +191,17 @@ export function AddUserModal({ open, onOpenChange, onUserAdded }: AddUserModalPr
             />
           </div>
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
               {loading ? 'Cadastrando...' : 'Cadastrar'}
             </Button>
           </div>

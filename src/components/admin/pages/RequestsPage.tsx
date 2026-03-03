@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Clock, CheckCircle, XCircle, Eye, Download, ExternalLink } from "lucide-react";
+import { FileText, Clock, CheckCircle, XCircle, Eye, Download, ExternalLink, Info, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
@@ -36,6 +36,33 @@ export function RequestsPage() {
   const [observacoes, setObservacoes] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("PENDENTE");
   const { toast } = useToast();
+
+  const SkeletonCard = () => (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="space-y-2 flex-1">
+            <div className="skeleton-shimmer h-6 w-64 rounded"></div>
+            <div className="skeleton-shimmer h-4 w-48 rounded"></div>
+          </div>
+          <div className="skeleton-shimmer h-6 w-24 rounded"></div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="skeleton-shimmer h-4 w-40 rounded"></div>
+          <div className="skeleton-shimmer h-4 w-36 rounded"></div>
+          <div className="skeleton-shimmer h-4 w-44 rounded"></div>
+          <div className="skeleton-shimmer h-4 w-32 rounded"></div>
+        </div>
+        <div className="skeleton-shimmer h-16 w-full rounded"></div>
+        <div className="flex gap-2">
+          <div className="skeleton-shimmer h-9 w-24 rounded"></div>
+          <div className="skeleton-shimmer h-9 w-24 rounded"></div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   useEffect(() => {
     loadRequests();
@@ -184,30 +211,36 @@ export function RequestsPage() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <p className="text-muted-foreground">Carregando requerimentos...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <FileText className="h-8 w-8" />
+        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+          <FileText className="h-6 w-6 sm:h-8 sm:w-8" />
           Requerimentos
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Gerencie os requerimentos enviados pelos associados
         </p>
       </div>
 
-      <div className="flex items-center gap-4 mb-6">
-        <Label>Filtrar por Status:</Label>
+      <Card className="border-l-4 border-l-primary">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <Info className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-sm sm:text-base">Gerenciamento de Requerimentos</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Visualize, analise e gerencie requerimentos enviados pelos associados. Atualize status e adicione observações.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+        <Label className="text-sm">Filtrar por Status:</Label>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -219,13 +252,21 @@ export function RequestsPage() {
             <SelectItem value="CANCELADO">Cancelados</SelectItem>
           </SelectContent>
         </Select>
-        <span className="text-sm text-muted-foreground">
+        <span className="text-xs sm:text-sm text-muted-foreground">
           ({filteredRequerimentos.length} {filteredRequerimentos.length === 1 ? 'requerimento' : 'requerimentos'})
         </span>
       </div>
 
       <div className="grid gap-4">
-        {filteredRequerimentos.length === 0 ? (
+        {isLoading ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : filteredRequerimentos.length === 0 ? (
           <Card>
             <CardContent className="p-6">
               <p className="text-muted-foreground text-center">
@@ -414,10 +455,10 @@ export function RequestsPage() {
       </div>
 
       <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Gerenciar Requerimento</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Gerenciar Requerimento</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Atualize o status e adicione observações ao requerimento
             </DialogDescription>
           </DialogHeader>
