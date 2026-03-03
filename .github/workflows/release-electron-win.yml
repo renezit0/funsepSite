@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -23,6 +25,38 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Determine next version
+        id: next_version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const fallback = String(packageJson.version || '1.0.0');
+            const [fMaj, fMin, fPatch] = fallback.split('.').map((n) => Number(n || 0));
+
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+
+            const semvers = releases
+              .map((release) => String(release.tag_name || '').replace(/^v/, ''))
+              .filter((tag) => /^\d+\.\d+\.\d+$/.test(tag))
+              .map((tag) => tag.split('.').map((n) => Number(n)));
+
+            semvers.push([fMaj, fMin, fPatch]);
+            semvers.sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]) || (a[2] - b[2]));
+
+            const latest = semvers[semvers.length - 1];
+            const next = `${latest[0]}.${latest[1]}.${latest[2] + 1}`;
+            core.setOutput('version', next);
+            core.info(`Next desktop version: ${next}`);
+
+      - name: Apply version to package.json
+        run: npm version ${{ steps.next_version.outputs.version }} --no-git-tag-version
 
       - name: Generate icons
         run: npm run icons:generate
