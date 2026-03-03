@@ -41,6 +41,72 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          app_area: string | null
+          created_at: string
+          element: string | null
+          event_type: string
+          extra: Json | null
+          id: string
+          is_admin: boolean | null
+          label: string | null
+          page: string | null
+          path: string | null
+          platform: string | null
+          referrer: string | null
+          target: string | null
+          url: string | null
+          user_agent: string | null
+          user_cargo: string | null
+          user_matricula: number | null
+          user_nome: string | null
+          user_sigla: string | null
+        }
+        Insert: {
+          app_area?: string | null
+          created_at?: string
+          element?: string | null
+          event_type: string
+          extra?: Json | null
+          id?: string
+          is_admin?: boolean | null
+          label?: string | null
+          page?: string | null
+          path?: string | null
+          platform?: string | null
+          referrer?: string | null
+          target?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_cargo?: string | null
+          user_matricula?: number | null
+          user_nome?: string | null
+          user_sigla?: string | null
+        }
+        Update: {
+          app_area?: string | null
+          created_at?: string
+          element?: string | null
+          event_type?: string
+          extra?: Json | null
+          id?: string
+          is_admin?: boolean | null
+          label?: string | null
+          page?: string | null
+          path?: string | null
+          platform?: string | null
+          referrer?: string | null
+          target?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_cargo?: string | null
+          user_matricula?: number | null
+          user_nome?: string | null
+          user_sigla?: string | null
+        }
+        Relationships: []
+      }
       cadben: {
         Row: {
           agencia: string | null
@@ -583,6 +649,92 @@ export type Database = {
         }
         Relationships: []
       }
+      email_change_logs: {
+        Row: {
+          id: string
+          matricula: number
+          cpf: string | null
+          nome_associado: string | null
+          email_anterior: string | null
+          email_novo: string
+          alterado_por_sigla: string
+          alterado_por_nome: string | null
+          motivo: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          matricula: number
+          cpf?: string | null
+          nome_associado?: string | null
+          email_anterior?: string | null
+          email_novo: string
+          alterado_por_sigla: string
+          alterado_por_nome?: string | null
+          motivo?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          matricula?: number
+          cpf?: string | null
+          nome_associado?: string | null
+          email_anterior?: string | null
+          email_novo?: string
+          alterado_por_sigla?: string
+          alterado_por_nome?: string | null
+          motivo?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      password_reset_tokens: {
+        Row: {
+          id: string
+          token: string
+          cpf_or_email: string
+          matricula: number | null
+          used: boolean
+          expires_at: string
+          created_at: string
+          used_at: string | null
+          created_by_sigla: string | null
+          request_ip: string | null
+        }
+        Insert: {
+          id?: string
+          token: string
+          cpf_or_email: string
+          matricula?: number | null
+          used?: boolean
+          expires_at: string
+          created_at?: string
+          used_at?: string | null
+          created_by_sigla?: string | null
+          request_ip?: string | null
+        }
+        Update: {
+          id?: string
+          token?: string
+          cpf_or_email?: string
+          matricula?: number | null
+          used?: boolean
+          expires_at?: string
+          created_at?: string
+          used_at?: string | null
+          created_by_sigla?: string | null
+          request_ip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "password_reset_tokens_matricula_fkey"
+            columns: ["matricula"]
+            isOneToOne: false
+            referencedRelation: "cadben"
+            referencedColumns: ["matricula"]
+          },
+        ]
+      }
       relatorio_tokens: {
         Row: {
           created_at: string
@@ -684,6 +836,128 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      support_messages: {
+        Row: {
+          awaiting_party: string | null
+          created_by_sigla: string | null
+          cpf: string
+          created_at: string
+          data_nascimento: string
+          email: string
+          feedback_interno: string | null
+          id: string
+          last_interaction_at: string | null
+          last_sender_sigla: string | null
+          last_sender_tipo: string | null
+          matricula: number | null
+          matricula_desconhecida: boolean
+          mensagem: string
+          nome: string
+          origem: string
+          respondido_em: string | null
+          respondido_por_cargo: string | null
+          respondido_por_sigla: string | null
+          status: string
+          target_matricula: number | null
+          target_sigla: string | null
+          target_type: string
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          awaiting_party?: string | null
+          created_by_sigla?: string | null
+          cpf: string
+          created_at?: string
+          data_nascimento: string
+          email: string
+          feedback_interno?: string | null
+          id?: string
+          last_interaction_at?: string | null
+          last_sender_sigla?: string | null
+          last_sender_tipo?: string | null
+          matricula?: number | null
+          matricula_desconhecida?: boolean
+          mensagem: string
+          nome: string
+          origem?: string
+          respondido_em?: string | null
+          respondido_por_cargo?: string | null
+          respondido_por_sigla?: string | null
+          status?: string
+          target_matricula?: number | null
+          target_sigla?: string | null
+          target_type?: string
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          awaiting_party?: string | null
+          created_by_sigla?: string | null
+          cpf?: string
+          created_at?: string
+          data_nascimento?: string
+          email?: string
+          feedback_interno?: string | null
+          id?: string
+          last_interaction_at?: string | null
+          last_sender_sigla?: string | null
+          last_sender_tipo?: string | null
+          matricula?: number | null
+          matricula_desconhecida?: boolean
+          mensagem?: string
+          nome?: string
+          origem?: string
+          respondido_em?: string | null
+          respondido_por_cargo?: string | null
+          respondido_por_sigla?: string | null
+          status?: string
+          target_matricula?: number | null
+          target_sigla?: string | null
+          target_type?: string
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      support_message_replies: {
+        Row: {
+          created_at: string
+          id: string
+          mensagem: string
+          sender_nome: string | null
+          sender_sigla: string | null
+          sender_tipo: string
+          support_message_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mensagem: string
+          sender_nome?: string | null
+          sender_sigla?: string | null
+          sender_tipo: string
+          support_message_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mensagem?: string
+          sender_nome?: string | null
+          sender_sigla?: string | null
+          sender_tipo?: string
+          support_message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_message_replies_support_message_id_fkey"
+            columns: ["support_message_id"]
+            isOneToOne: false
+            referencedRelation: "support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       senhas: {
         Row: {
@@ -832,6 +1106,7 @@ export type Database = {
           senha: string | null
           sigla: string | null
           status: string | null
+          telefone: string | null
         }
         Insert: {
           cargo?: string | null
@@ -842,6 +1117,7 @@ export type Database = {
           senha?: string | null
           sigla?: string | null
           status?: string | null
+          telefone?: string | null
         }
         Update: {
           cargo?: string | null
@@ -852,6 +1128,7 @@ export type Database = {
           senha?: string | null
           sigla?: string | null
           status?: string | null
+          telefone?: string | null
         }
         Relationships: []
       }

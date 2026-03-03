@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { RequestDocumentUpload } from "@/components/RequestDocumentUpload";
+import { useFeedback } from "@/contexts/FeedbackContext";
 
 interface FormProps {
   formData: any;
@@ -13,6 +14,16 @@ interface FormProps {
 }
 
 export function InclusaoRecemNascidoForm({ formData, updateFormData, handleDocumentUpload, getDocument }: FormProps) {
+  const { mostrarToast } = useFeedback();
+
+  const validateField = (fieldName: string, fieldLabel: string) => {
+    if (!formData[fieldName] || (typeof formData[fieldName] === "string" && formData[fieldName].trim() === "")) {
+      mostrarToast("erro", `Por favor, preencha o campo: ${fieldLabel}`);
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div className="space-y-4">
       <Alert>
@@ -24,56 +35,69 @@ export function InclusaoRecemNascidoForm({ formData, updateFormData, handleDocum
 
       <div className="space-y-2">
         <Label>Nome do Titular *</Label>
-        <Input 
-          value={formData.nome_titular || formData.nome} 
-          onChange={(e) => updateFormData("nome_titular", e.target.value)} 
-          required 
+        <Input
+          value={formData.nome_titular || formData.nome}
+          onChange={(e) => updateFormData("nome_titular", e.target.value)}
+          onBlur={() => validateField("nome_titular", "Nome do Titular")}
+          required
         />
       </div>
 
       <div className="space-y-2">
         <Label>Matrícula no Funsep *</Label>
-        <Input 
-          value={formData.matricula} 
-          onChange={(e) => updateFormData("matricula", e.target.value)} 
-          required 
+        <Input
+          value={formData.matricula}
+          onChange={(e) => updateFormData("matricula", e.target.value)}
+          onBlur={() => validateField("matricula", "Matrícula no Funsep")}
+          required
           disabled={!!formData.matricula}
         />
       </div>
 
       <div className="space-y-2">
         <Label>Nome do Recém-Nascido *</Label>
-        <Input 
-          value={formData.nome_recem_nascido || ""} 
-          onChange={(e) => updateFormData("nome_recem_nascido", e.target.value)} 
-          required 
+        <Input
+          value={formData.nome_recem_nascido || ""}
+          onChange={(e) => updateFormData("nome_recem_nascido", e.target.value)}
+          onBlur={() => validateField("nome_recem_nascido", "Nome do Recém-Nascido")}
+          required
         />
       </div>
 
       <div className="space-y-2">
         <Label>Data de Nascimento *</Label>
-        <Input 
-          type="date" 
-          value={formData.data_nascimento || ""} 
-          onChange={(e) => updateFormData("data_nascimento", e.target.value)} 
-          required 
+        <Input
+          type="date"
+          value={formData.data_nascimento || ""}
+          onChange={(e) => updateFormData("data_nascimento", e.target.value)}
+          onBlur={() => validateField("data_nascimento", "Data de Nascimento")}
+          required
         />
       </div>
 
       <div className="space-y-2">
         <Label>Telefone para Contato *</Label>
-        <Input 
+        <Input
           type="tel"
-          value={formData.telefone || ""} 
-          onChange={(e) => updateFormData("telefone", e.target.value)} 
+          value={formData.telefone || ""}
+          onChange={(e) => updateFormData("telefone", e.target.value)}
+          onBlur={() => validateField("telefone", "Telefone para Contato")}
           placeholder="(41) 99999-9999"
-          required 
+          required
         />
       </div>
 
       <div className="space-y-2">
         <Label>Tipo de Acomodação *</Label>
-        <Select value={formData.tipacomoda || ""} onValueChange={(v) => updateFormData("tipacomoda", v)}>
+        <Select
+          value={formData.tipacomoda || ""}
+          onValueChange={(v) => {
+            updateFormData("tipacomoda", v);
+            if (!v) {
+              mostrarToast("erro", "Por favor, selecione o Tipo de Acomodação");
+            }
+          }}
+        >
           <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="APARTAMENTO">Apartamento</SelectItem>
@@ -84,11 +108,12 @@ export function InclusaoRecemNascidoForm({ formData, updateFormData, handleDocum
 
       <div className="space-y-2">
         <Label>Data *</Label>
-        <Input 
-          type="date" 
-          value={formData.data || ""} 
-          onChange={(e) => updateFormData("data", e.target.value)} 
-          required 
+        <Input
+          type="date"
+          value={formData.data || ""}
+          onChange={(e) => updateFormData("data", e.target.value)}
+          onBlur={() => validateField("data", "Data")}
+          required
         />
       </div>
 

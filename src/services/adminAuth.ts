@@ -31,7 +31,22 @@ class AdminAuthService {
 
       if (error) {
         console.error('Erro no login:', error);
-        return { success: false, error: 'Erro na autenticação' };
+        let backendMessage = 'Erro na autenticação';
+
+        // Para erros HTTP da edge function, tenta extrair a mensagem real do body.
+        const response = (error as { context?: Response }).context;
+        if (response) {
+          try {
+            const payload = await response.clone().json();
+            if (payload?.error && typeof payload.error === 'string') {
+              backendMessage = payload.error;
+            }
+          } catch {
+            // noop
+          }
+        }
+
+        return { success: false, error: backendMessage };
       }
 
       if (!data.success) {
@@ -92,24 +107,51 @@ class AdminAuthService {
     if (!session) return false;
 
     try {
-      // Verificar se a sessão ainda está ativa no banco
-      const { data, error } = await supabase
-        .from('admin_sessions')
-        .select('*')
-        .eq('token', session.token)
-        .eq('is_active', true)
-        .gt('expires_at', new Date().toISOString())
-        .single();
+      // Validar sessão e obter dados reais do servidor
+      const { data, error } = await supabase.functions.invoke('validate-session', {
+        body: { token: session.token }
+      });
 
-      if (error || !data) {
+      if (error || !data?.success) {
         this.logout();
         return false;
       }
+
+      // Atualizar localStorage com dados reais do servidor
+      // Isso garante que mesmo se o usuário manipular os dados, eles serão corrigidos
+      const validatedSession = data.session;
+      localStorage.setItem(this.sessionKey, JSON.stringify(validatedSession));
 
       return true;
     } catch {
       this.logout();
       return false;
+    }
+  }
+
+  async refreshSession(): Promise<AdminSession | null> {
+    const session = this.getSession();
+    if (!session) return null;
+
+    try {
+      // Buscar dados atualizados do servidor
+      const { data, error } = await supabase.functions.invoke('validate-session', {
+        body: { token: session.token }
+      });
+
+      if (error || !data?.success) {
+        this.logout();
+        return null;
+      }
+
+      // Atualizar com dados reais
+      const validatedSession = data.session;
+      localStorage.setItem(this.sessionKey, JSON.stringify(validatedSession));
+
+      return validatedSession;
+    } catch {
+      this.logout();
+      return null;
     }
   }
 }

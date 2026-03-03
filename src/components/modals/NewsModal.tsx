@@ -166,7 +166,10 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
         ...formData,
         imagem_url: imagemUrl,
         autor_sigla: session.sigla,
-        data_publicacao: formData.publicado ? new Date().toISOString() : null,
+        // Em edição, manter a data original de publicação/criação.
+        data_publicacao: editingNews
+          ? (editingNews.data_publicacao ?? null)
+          : (formData.publicado ? new Date().toISOString() : null),
       };
 
       let result;
@@ -199,31 +202,32 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="pr-4 truncate">
             {editingNews ? "Editar Notícia" : "Nova Notícia"}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="titulo">Título</Label>
+        <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-full overflow-x-hidden">
+          <div className="w-full max-w-full">
+            <Label htmlFor="titulo">Título *</Label>
             <Input
               id="titulo"
               value={formData.titulo}
               onChange={(e) => setFormData(prev => ({ ...prev, titulo: e.target.value }))}
               required
+              className="w-full max-w-full"
             />
           </div>
 
-          <div>
+          <div className="w-full max-w-full">
             <Label htmlFor="categoria">Categoria</Label>
             <Select 
               value={formData.categoria}
               onValueChange={(value) => setFormData(prev => ({ ...prev, categoria: value }))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full max-w-full">
                 <SelectValue placeholder="Selecione uma categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -234,24 +238,26 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="resumo">Resumo (usado na lista de notícias)</Label>
+          <div className="w-full max-w-full">
+            <Label htmlFor="resumo">Resumo (usado na lista de notícias) *</Label>
             <Input
               id="resumo"
               value={formData.resumo}
               onChange={(e) => setFormData(prev => ({ ...prev, resumo: e.target.value }))}
               required
+              className="w-full max-w-full"
             />
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
+          <div className="w-full max-w-full overflow-x-hidden">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
               <Label htmlFor="conteudo">Conteúdo</Label>
               <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen} modal={true}>
                 <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" size="sm" className="gap-2">
+                  <Button type="button" variant="outline" size="sm" className="gap-2 flex-shrink-0">
                     <Table className="h-4 w-4" />
-                    Inserir Tabela
+                    <span className="hidden sm:inline">Inserir Tabela</span>
+                    <span className="sm:hidden">Tabela</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 z-[100]" sideOffset={5}>
@@ -288,28 +294,31 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="bg-background border rounded-md">
-              <ReactQuill
-                ref={quillRef}
-                theme="snow"
-                value={formData.conteudo}
-                onChange={(value) => setFormData(prev => ({ ...prev, conteudo: value }))}
-                modules={modules}
-                formats={formats}
-                className="min-h-[300px]"
-              />
+            <div className="bg-background border rounded-md w-full max-w-full overflow-x-hidden">
+              <div className="w-full max-w-full overflow-x-hidden">
+                <ReactQuill
+                  ref={quillRef}
+                  theme="snow"
+                  value={formData.conteudo}
+                  onChange={(value) => setFormData(prev => ({ ...prev, conteudo: value }))}
+                  modules={modules}
+                  formats={formats}
+                  className="min-h-[250px] sm:min-h-[300px] w-full max-w-full"
+                  style={{ height: "auto", minHeight: "250px" }}
+                />
+              </div>
             </div>
           </div>
 
-          <div>
+          <div className="w-full max-w-full overflow-x-hidden">
             <Label htmlFor="imagem">Imagem</Label>
-            <div className="mt-2">
+            <div className="mt-2 w-full max-w-full overflow-x-hidden">
               {imagePreview ? (
-                <div className="relative inline-block">
+                <div className="relative inline-block w-full max-w-md">
                   <img
                     src={imagePreview}
                     alt="Preview"
-                    className="w-full max-w-md h-48 object-cover rounded-lg border"
+                    className="w-full max-w-full h-48 object-cover rounded-lg border"
                   />
                   <Button
                     type="button"
@@ -325,12 +334,12 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
                   </Button>
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 sm:p-6 w-full max-w-full">
                   <div className="text-center">
-                    <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <ImageIcon className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
                     <div className="mt-4">
                       <Label htmlFor="image-upload" className="cursor-pointer">
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-xs sm:text-sm text-muted-foreground">
                           Clique para selecionar uma imagem
                         </div>
                       </Label>
@@ -348,16 +357,16 @@ export function NewsModal({ isOpen, onClose, onSuccess, editingNews }: NewsModal
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-wrap">
             <Switch
               id="publicado"
               checked={formData.publicado}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, publicado: checked }))}
             />
-            <Label htmlFor="publicado">Publicar imediatamente</Label>
+            <Label htmlFor="publicado" className="text-sm">Publicar imediatamente</Label>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex justify-end space-x-2 pt-4 flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>

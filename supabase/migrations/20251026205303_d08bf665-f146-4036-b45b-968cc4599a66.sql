@@ -70,7 +70,7 @@ Mensalmente, caso tenha sido utilizado o plano para consultas ou exames, haverá
 
 No FUNSEP, a carência funciona da seguinte forma:
 
-**Consultas - Exames de patologia clínica:** 30 dias após o primeiro desconto (primeiro dia do mês seguinte)
+**Consultas - Exames de patologia clínica:** 30 dias após o primeiro desconto (ex.: 1º desconto em janeiro, uso a partir de 1º de março)
 
 **Exames de diagnóstico e terapia:** endoscopia diagnóstica em regime ambulatorial, exames radiológicos simples, histocitopatologia, exames e testes alergológicos, oftalmológicos, otorrinolaringológicos (exceto videolaringoestroboscopia), inalo terapia, provas de função pulmonar, teste ergométrico, procedimentos de reabilitação e fisioterapia
 

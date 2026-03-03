@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFeedback } from "@/contexts/FeedbackContext";
 import { adminAuth } from "@/services/adminAuth";
+import { ForgotPasswordModal } from "./ForgotPasswordModal";
+import { SupportMessageModal } from "./SupportMessageModal";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -26,6 +28,8 @@ export function LoginModal({
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showSupportMessage, setShowSupportMessage] = useState(false);
   const { login, session } = useAuth();
   const { mostrarToast, mostrarFeedback } = useFeedback();
   const navigate = useNavigate();
@@ -69,37 +73,43 @@ export function LoginModal({
     return value;
   };
   return <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-center">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-base sm:text-lg font-semibold text-center">
             Área do Usuário
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
+              <Label htmlFor="cpf">CPF *</Label>
               <Input id="cpf" type="text" placeholder="000.000.000-00" value={cpf} onChange={e => setCpf(formatCPF(e.target.value))} maxLength={14} required disabled={isLoading} />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password">Senha *</Label>
               <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={isLoading} />
-              <div className="text-sm text-muted-foreground space-y-1">
-                
-                
-                
-                
-              </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox id="remember" checked={remember} onCheckedChange={checked => setRemember(checked as boolean)} />
-            <Label htmlFor="remember" className="text-sm">
-              Lembrar-me
-            </Label>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Checkbox id="remember" checked={remember} onCheckedChange={checked => setRemember(checked as boolean)} />
+              <Label htmlFor="remember" className="text-sm cursor-pointer">
+                Lembrar-me
+              </Label>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                setShowForgotPassword(true);
+              }}
+              className="text-sm text-primary hover:underline"
+            >
+              Cadastrar ou recuperar senha
+            </button>
           </div>
 
           <Button type="submit" className="w-full gap-2" disabled={isLoading}>
@@ -122,18 +132,44 @@ export function LoginModal({
                 </div>
                 
                 <div>
-                  <p className="font-medium text-foreground">🏢 Associados FUNSEP:</p>
+                  <p className="font-medium text-foreground flex items-center gap-1">
+                    <i className="fas fa-user" aria-hidden="true"></i>
+                    Associados FUNSEP:
+                  </p>
                   <p className="text-muted-foreground">
                     Use seu CPF + senha cadastrada no sistema
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Procure um administrador para cadastrar sua senha de acesso
+                    Caso não receba o e-mail, entre em contato conosco.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              onClose();
+              setShowSupportMessage(true);
+            }}
+            disabled={isLoading}
+          >
+            Enviar mensagem
+          </Button>
         </form>
       </DialogContent>
+
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
+      <SupportMessageModal
+        isOpen={showSupportMessage}
+        onClose={() => setShowSupportMessage(false)}
+        source="LOGIN_MODAL"
+      />
     </Dialog>;
 }

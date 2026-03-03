@@ -44,14 +44,14 @@ export function NewsPreviewModal({ isOpen, onClose, noticia }: NewsPreviewModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-base sm:text-lg font-semibold">
             Pré-visualização da Notícia
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 pt-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Header info */}
           <div className="flex flex-wrap items-center gap-4">
             <Badge className={`${getCategoryColor(noticia.categoria)} text-white`}>
@@ -63,12 +63,12 @@ export function NewsPreviewModal({ isOpen, onClose, noticia }: NewsPreviewModalP
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground leading-tight">
             {noticia.titulo}
           </h1>
 
           {/* Dates and author */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground border-b pb-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground border-b pb-3 sm:pb-4">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               <span>
@@ -90,15 +90,15 @@ export function NewsPreviewModal({ isOpen, onClose, noticia }: NewsPreviewModalP
           </div>
 
           {/* Summary */}
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <p className="text-muted-foreground italic">
+          <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
+            <p className="text-muted-foreground italic text-sm sm:text-base">
               {noticia.resumo}
             </p>
           </div>
 
           {/* Content */}
           <div 
-            className="ql-editor prose prose-lg max-w-none dark:prose-invert
+            className="ql-editor prose prose-sm sm:prose-base max-w-none dark:prose-invert
               prose-headings:text-foreground 
               prose-p:text-foreground/90 
               prose-a:text-primary 

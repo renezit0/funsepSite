@@ -1,15 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Download, Eye, FileText, User, Calendar, Hash } from "lucide-react";
+import { Download, Eye, FileText, User, Calendar, Hash, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeedback } from "@/contexts/FeedbackContext";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { generatePDFFromHTML } from '@/utils/generatePDFFromHTML';
+import { useLocation, useParams } from "react-router-dom";
 
 interface ReportInfo {
   matricula: number;
@@ -18,6 +18,9 @@ interface ReportInfo {
   tipo_relatorio: string;
   data_inicio: string;
   data_fim: string;
+  valor_total_centavos: number;
+  valor_total_formatado: string;
+  detalhes_relatorio?: Record<string, unknown>;
   gerado_em: string;
   visualizacoes: number;
   ultima_visualizacao: string;
@@ -29,12 +32,15 @@ interface ReportInfo {
 }
 
 export function ViewReportByToken() {
+  const { token: routeToken } = useParams<{ token: string }>();
+  const location = useLocation();
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [reportInfo, setReportInfo] = useState<ReportInfo | null>(null);
   const [htmlContent, setHtmlContent] = useState("");
   const [filename, setFilename] = useState("");
   const { mostrarToast, mostrarFeedback } = useFeedback();
+  const [autoLoadedByLink, setAutoLoadedByLink] = useState(false);
 
   const formatCPF = (cpf: string | number) => {
     const cpfStr = cpf.toString().padStart(11, '0');
@@ -109,66 +115,31 @@ export function ViewReportByToken() {
     }
   };
 
+  useEffect(() => {
+    if (autoLoadedByLink) return;
+
+    const params = new URLSearchParams(location.search);
+    const queryToken = params.get('token') || params.get('') || '';
+    const incomingToken = (routeToken || queryToken || '').trim();
+
+    if (!incomingToken) return;
+
+    setToken(incomingToken);
+    setAutoLoadedByLink(true);
+  }, [routeToken, location.search, autoLoadedByLink]);
+
+  useEffect(() => {
+    if (!autoLoadedByLink || !token.trim()) return;
+    void viewReport();
+  }, [autoLoadedByLink, token]);
+
   const downloadPDF = async () => {
     if (!htmlContent) return;
 
     setLoading(true);
 
     try {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlContent;
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.top = '-9999px';
-      tempDiv.style.width = '794px';
-      tempDiv.style.maxWidth = '794px';
-      tempDiv.style.backgroundColor = '#ffffff';
-      document.body.appendChild(tempDiv);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2.5,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        width: 794,
-        height: Math.max(1123, tempDiv.scrollHeight),
-      });
-
-      document.body.removeChild(tempDiv);
-
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-
-      const marginLeft = 15;
-      const marginTop = 15;
-      const marginRight = 15;
-      const marginBottom = 15;
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const contentWidth = pageWidth - marginLeft - marginRight;
-      const contentHeight = pageHeight - marginTop - marginBottom;
-      const imgWidth = contentWidth;
-      const imgHeight = (canvas.height * contentWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = marginTop;
-      let page = 0;
-
-      pdf.addImage(imgData, 'PNG', marginLeft, position, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= contentHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight + marginTop;
-        pdf.addPage();
-        page++;
-        pdf.addImage(imgData, 'PNG', marginLeft, position, imgWidth, imgHeight, undefined, 'FAST');
-        heightLeft -= contentHeight;
-      }
-
-      pdf.save(filename);
+      await generatePDFFromHTML({ htmlContent, filename });
 
       mostrarToast('sucesso', 'PDF baixado com sucesso!');
     } catch (error) {
@@ -180,107 +151,139 @@ export function ViewReportByToken() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Visualizar Relatório por Token
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="token">Token do Relatório</Label>
-            <div className="flex gap-2">
-              <Input
-                id="token"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="Digite o token do relatório"
-                className="font-mono"
-              />
-              <Button onClick={viewReport} disabled={loading}>
-                <Eye className="h-4 w-4 mr-2" />
-                Visualizar
-              </Button>
-            </div>
+    <Card>
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="flex items-center gap-3 text-base sm:text-lg">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Hash className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </div>
-
-          {reportInfo && (
-            <>
-              <Separator />
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Informações do Relatório</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">Beneficiário</div>
-                    <div className="font-medium">{reportInfo.nome_beneficiario}</div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">CPF</div>
-                    <div className="font-mono">{formatCPF(reportInfo.cpf_beneficiario)}</div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">Matrícula</div>
-                    <div className="font-mono">{reportInfo.matricula}</div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">Tipo</div>
-                    <Badge variant="outline">{getTipoRelatorioLabel(reportInfo.tipo_relatorio)}</Badge>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">Período</div>
-                    <div className="text-sm">
-                      {formatDate(reportInfo.data_inicio)} até {formatDate(reportInfo.data_fim)}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">Gerado em</div>
-                    <div className="text-sm">{formatDateTime(reportInfo.gerado_em)}</div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">Visualizações</div>
-                    <div className="flex items-center gap-2">
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                      <span>{reportInfo.visualizacoes}</span>
-                    </div>
-                  </div>
-
-                  {reportInfo.gerado_por && (
-                    <div className="space-y-1">
-                      <div className="text-sm text-muted-foreground">Gerado por</div>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          {reportInfo.gerado_por.nome} ({reportInfo.gerado_por.sigla})
-                        </span>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {reportInfo.gerado_por.cargo}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button onClick={downloadPDF} disabled={loading} className="w-full md:w-auto">
-                    <Download className="h-4 w-4 mr-2" />
-                    Baixar PDF
-                  </Button>
-                </div>
+          Insira o Token de Validação
+        </CardTitle>
+      </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="token">Token do Relatório</Label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  id="token"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  placeholder="Digite o token do relatório"
+                  className="font-mono text-sm flex-1"
+                  onKeyDown={(e) => e.key === 'Enter' && viewReport()}
+                />
+                <Button
+                  onClick={viewReport}
+                  disabled={loading}
+                  className="w-full sm:w-auto"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  {loading ? 'Buscando...' : 'Visualizar'}
+                </Button>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              <p className="text-xs text-muted-foreground">
+                O token é fornecido junto com o relatório gerado. Cole o código completo no campo acima.
+              </p>
+            </div>
+
+            {reportInfo && (
+              <>
+                <Separator className="my-4" />
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-primary/10">
+                      <FileText className="h-4 w-4 text-primary" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-semibold">Informações do Relatório</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="p-4 rounded-lg border border-blue-100 bg-blue-50/50">
+                      <div className="text-xs font-medium text-blue-600 uppercase tracking-wider mb-2">Beneficiário</div>
+                      <div className="font-semibold text-foreground">{reportInfo.nome_beneficiario}</div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-purple-100 bg-purple-50/50">
+                      <div className="text-xs font-medium text-purple-600 uppercase tracking-wider mb-2">CPF</div>
+                      <div className="font-mono text-foreground font-semibold">{formatCPF(reportInfo.cpf_beneficiario)}</div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-green-100 bg-green-50/50">
+                      <div className="text-xs font-medium text-green-600 uppercase tracking-wider mb-2">Matrícula</div>
+                      <div className="font-mono text-foreground font-semibold">{reportInfo.matricula}</div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-orange-100 bg-orange-50/50">
+                      <div className="text-xs font-medium text-orange-600 uppercase tracking-wider mb-2">Tipo</div>
+                      <Badge className="bg-orange-500 text-white">{getTipoRelatorioLabel(reportInfo.tipo_relatorio)}</Badge>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-indigo-100 bg-indigo-50/50">
+                      <div className="text-xs font-medium text-indigo-600 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Período
+                      </div>
+                      <div className="text-sm text-foreground font-medium">
+                        {formatDate(reportInfo.data_inicio)} até {formatDate(reportInfo.data_fim)}
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-gray-100 bg-gray-50/50">
+                      <div className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">Gerado em</div>
+                      <div className="text-sm text-foreground font-medium">{formatDateTime(reportInfo.gerado_em)}</div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-emerald-100 bg-emerald-50/50">
+                      <div className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-2">Valor total</div>
+                      <div className="flex items-center gap-2">
+                        <Wallet className="h-4 w-4 text-emerald-600" />
+                        <span className="font-semibold text-foreground">{reportInfo.valor_total_formatado}</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-teal-100 bg-teal-50/50">
+                      <div className="text-xs font-medium text-teal-600 uppercase tracking-wider mb-2">Visualizações</div>
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-teal-600" />
+                        <span className="font-semibold text-foreground">{reportInfo.visualizacoes}</span>
+                      </div>
+                    </div>
+
+                    {reportInfo.gerado_por && (
+                      <div className="p-4 rounded-lg border border-pink-100 bg-pink-50/50 md:col-span-2">
+                        <div className="text-xs font-medium text-pink-600 uppercase tracking-wider mb-2">Gerado por</div>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-full bg-pink-100">
+                            <User className="h-4 w-4 text-pink-600" />
+                          </div>
+                          <div>
+                            <span className="font-semibold text-foreground">
+                              {reportInfo.gerado_por.nome} ({reportInfo.gerado_por.sigla})
+                            </span>
+                            <div className="mt-1">
+                              <Badge variant="secondary" className="bg-pink-100 text-pink-700">{reportInfo.gerado_por.cargo}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      onClick={downloadPDF}
+                      disabled={loading}
+                      className="w-full sm:w-auto"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      {loading ? 'Gerando PDF...' : 'Baixar Relatório em PDF'}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+      </CardContent>
+    </Card>
   );
 }

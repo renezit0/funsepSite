@@ -119,36 +119,39 @@ export function SobreFunsepModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden w-full max-w-[calc(100vw-2rem)] sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Editar Seção: {editingSecao?.titulo}</DialogTitle>
+          <DialogTitle className="pr-4 truncate">Editar Seção: {editingSecao?.titulo}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="titulo">Título</Label>
+        <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-full overflow-x-hidden">
+          <div className="space-y-2 w-full max-w-full">
+            <Label htmlFor="titulo">Título *</Label>
             <Input
               id="titulo"
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               required
+              className="w-full max-w-full"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="conteudo">Conteúdo</Label>
-            <div className="min-h-[400px]">
-              <ReactQuill
-                theme="snow"
-                value={conteudo}
-                onChange={setConteudo}
-                modules={modules}
-                formats={formats}
-                className="bg-background"
-                style={{ height: "350px" }}
-              />
+          <div className="space-y-2 w-full max-w-full overflow-x-hidden">
+            <Label htmlFor="conteudo">Conteúdo *</Label>
+            <div className="min-h-[300px] sm:min-h-[400px] w-full max-w-full overflow-x-hidden">
+              <div className="w-full max-w-full overflow-x-hidden">
+                <ReactQuill
+                  theme="snow"
+                  value={conteudo}
+                  onChange={setConteudo}
+                  modules={modules}
+                  formats={formats}
+                  className="bg-background w-full max-w-full"
+                  style={{ height: "auto", minHeight: "250px" }}
+                />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-12">
+            <p className="text-xs text-muted-foreground mt-8 sm:mt-12 break-words">
               Use a barra de ferramentas para formatar o texto, adicionar links, etc. Para tabelas, use o formato markdown: | Coluna 1 | Coluna 2 |
             </p>
           </div>

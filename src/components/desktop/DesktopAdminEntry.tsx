@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { LogIn, Info } from "lucide-react";
+import { LogIn, Info, Minus, Square, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminAuth } from "@/services/adminAuth";
 import { useFeedback } from "@/contexts/FeedbackContext";
@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import AdminDashboard from "@/pages/AdminDashboard";
+import { AdminDashboard } from "@/pages/AdminDashboard";
+import { ForgotPasswordModal } from "@/components/modals/ForgotPasswordModal";
+import { SupportMessageModal } from "@/components/modals/SupportMessageModal";
 
 const adminRoles = ["GERENTE", "DESENVOLVEDOR", "ANALISTA DE SISTEMAS"];
 
@@ -25,6 +27,9 @@ export function DesktopAdminEntry() {
   const [cpf, setCpf] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showSupportMessage, setShowSupportMessage] = useState(false);
+  const [windowMaximized, setWindowMaximized] = useState(false);
 
   const isAdmin = useMemo(() => {
     return !!session?.user?.cargo && adminRoles.includes(session.user.cargo);
@@ -38,6 +43,31 @@ export function DesktopAdminEntry() {
       // noop
     });
   }, [isAdmin, logout, session]);
+
+  useEffect(() => {
+    const desktopApi = window.funsepDesktop;
+    if (!desktopApi) return;
+
+    desktopApi.getWindowState().then((state) => {
+      setWindowMaximized(Boolean(state?.maximized));
+    }).catch(() => {});
+
+    const unsub = desktopApi.onWindowState((payload) => {
+      setWindowMaximized(Boolean(payload?.maximized));
+    });
+
+    return () => unsub();
+  }, []);
+
+  const handleWindowControl = async (action: "minimize" | "toggle-maximize" | "close") => {
+    const desktopApi = window.funsepDesktop;
+    if (!desktopApi) return;
+    try {
+      await desktopApi.windowControl(action);
+    } catch {
+      // noop
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +108,41 @@ export function DesktopAdminEntry() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-bg-secondary">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-bg-secondary pt-14">
+      <div className="desktop-drag-region fixed top-0 left-0 right-0 z-40 h-9 border-b border-border/70 px-3 flex items-center justify-between bg-card/95">
+        <div />
+        <p className="text-xs text-muted-foreground">FUNSEP Admin</p>
+        <div className="desktop-no-drag flex items-center gap-1.5">
+          <button
+            type="button"
+            className="desktop-traffic-btn bg-[#febc2e]"
+            onClick={() => handleWindowControl("minimize")}
+            aria-label="Minimizar"
+            title="Minimizar"
+          >
+            <Minus className="h-2.5 w-2.5 text-black/70" />
+          </button>
+          <button
+            type="button"
+            className="desktop-traffic-btn bg-[#28c840]"
+            onClick={() => handleWindowControl("toggle-maximize")}
+            aria-label={windowMaximized ? "Restaurar" : "Maximizar"}
+            title={windowMaximized ? "Restaurar" : "Maximizar"}
+          >
+            <Square className="h-2 w-2 text-black/70" />
+          </button>
+          <button
+            type="button"
+            className="desktop-traffic-btn bg-[#ff5f57]"
+            onClick={() => handleWindowControl("close")}
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            <X className="h-2.5 w-2.5 text-black/70" />
+          </button>
+        </div>
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-xl text-center">FUNSEP Admin</CardTitle>
@@ -113,7 +177,13 @@ export function DesktopAdminEntry() {
             </div>
 
             <div className="flex justify-end">
-              <span className="text-xs text-muted-foreground">Acesso exclusivo de colaboradores</span>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-primary hover:underline"
+              >
+                Cadastrar ou recuperar senha
+              </button>
             </div>
 
             <Button type="submit" className="w-full gap-2" disabled={submitting}>
@@ -131,8 +201,22 @@ export function DesktopAdminEntry() {
               <p className="text-muted-foreground">Use seu CPF e senha de colaborador com perfil administrativo.</p>
             </CardContent>
           </Card>
+
+          <Button type="button" variant="outline" className="w-full" onClick={() => setShowSupportMessage(true)}>
+            Enviar mensagem
+          </Button>
         </CardContent>
       </Card>
+
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
+      <SupportMessageModal
+        isOpen={showSupportMessage}
+        onClose={() => setShowSupportMessage(false)}
+        source="LOGIN_MODAL"
+      />
     </div>
   );
 }

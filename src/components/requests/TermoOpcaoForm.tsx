@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useFeedback } from "@/contexts/FeedbackContext";
 
 interface FormProps {
   formData: any;
@@ -10,6 +11,16 @@ interface FormProps {
 }
 
 export function TermoOpcaoForm({ formData, updateFormData }: FormProps) {
+  const { mostrarToast } = useFeedback();
+
+  const validateField = (fieldName: string, fieldLabel: string) => {
+    if (!formData[fieldName] || (typeof formData[fieldName] === "string" && formData[fieldName].trim() === "")) {
+      mostrarToast("erro", `Por favor, preencha o campo: ${fieldLabel}`);
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div className="space-y-4">
       <Alert>
@@ -67,15 +78,46 @@ export function TermoOpcaoForm({ formData, updateFormData }: FormProps) {
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>Telefone para Contato *</Label>
-        <Input 
-          type="tel"
-          value={formData.telefone || ""} 
-          onChange={(e) => updateFormData("telefone", e.target.value)} 
-          placeholder="(41) 99999-9999"
-          required 
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Telefone para Contato</Label>
+          <Input 
+            type="tel"
+            value={formData.telefone || ""} 
+            onChange={(e) => updateFormData("telefone", e.target.value)} 
+            placeholder="(41) 99999-9999"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Celular</Label>
+          <Input 
+            type="tel"
+            value={formData.celular || ""} 
+            onChange={(e) => updateFormData("celular", e.target.value)} 
+            placeholder="(41) 99999-9999"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>E-mail</Label>
+          <Input 
+            type="email"
+            value={formData.email || ""} 
+            onChange={(e) => updateFormData("email", e.target.value)} 
+            placeholder="seu@email.com"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>E-mail Particular</Label>
+          <Input 
+            type="email"
+            value={formData.email_particular || ""} 
+            onChange={(e) => updateFormData("email_particular", e.target.value)} 
+            placeholder="seu@emailparticular.com"
+          />
+        </div>
       </div>
 
       <div className="border-t pt-4 space-y-4">

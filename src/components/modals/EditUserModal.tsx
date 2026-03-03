@@ -25,8 +25,10 @@ interface User {
   nome: string;
   cargo: string;
   secao: string;
-  senha: string;
+  senha?: string;
   status: string;
+  cpf?: string | null;
+  telefone?: string | null;
 }
 
 interface EditUserModalProps {
@@ -44,7 +46,9 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
     cargo: "",
     secao: "",
     senha: "",
-    status: "ATIVO"
+    status: "ATIVO",
+    cpf: "",
+    telefone: "",
   });
   const [loading, setLoading] = useState(false);
   const { mostrarToast, mostrarFeedback } = useFeedback();
@@ -55,7 +59,7 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
 
   React.useEffect(() => {
     if (user) {
-      setFormData(user);
+      setFormData({ ...user, senha: "" });
     }
   }, [user]);
 
@@ -69,6 +73,8 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
         cargo: formData.cargo,
         secao: formData.secao,
         status: formData.status,
+        cpf: (formData.cpf || "").replace(/\D/g, "") || null,
+        telefone: (formData.telefone || "").replace(/\D/g, "") || null,
       };
 
       // Apenas desenvolvedores podem alterar a sigla
@@ -77,7 +83,7 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
       }
 
       // Só atualizar senha se foi alterada
-      if (formData.senha && formData.senha !== user?.senha) {
+      if (formData.senha) {
         updateData.senha = formData.senha;
       }
 
@@ -103,10 +109,10 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar Usuário</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-base sm:text-lg">Editar Usuário</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Altere as informações do usuário {user.nome}
           </DialogDescription>
         </DialogHeader>
@@ -130,7 +136,7 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="nome">Nome</Label>
+            <Label htmlFor="nome">Nome *</Label>
             <Input
               id="nome"
               value={formData.nome}
@@ -157,6 +163,28 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
                 <SelectItem value="AUXILIAR">Auxiliar</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cpf">CPF</Label>
+            <Input
+              id="cpf"
+              value={formData.cpf || ""}
+              onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, "").slice(0, 11) })}
+              maxLength={11}
+              placeholder="Somente números"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="telefone">Telefone (WhatsApp)</Label>
+            <Input
+              id="telefone"
+              value={formData.telefone || ""}
+              onChange={(e) => setFormData({ ...formData, telefone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
+              maxLength={11}
+              placeholder="DDD + número"
+            />
           </div>
 
           <div className="space-y-2">
@@ -199,16 +227,17 @@ export function EditUserModal({ user, open, onOpenChange, onUserUpdated }: EditU
             </div>
           )}
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
               {loading ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>

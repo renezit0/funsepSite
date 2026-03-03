@@ -42,7 +42,11 @@ const requestTypes = [
   { value: "termo_opcao", label: "Termo de Opção", requiresLogin: true },
 ];
 
-export function RequestsPage() {
+interface RequestsPageProps {
+  currentPage?: string;
+}
+
+export function RequestsPage({ currentPage = "requests" }: RequestsPageProps) {
   const { session } = useAuth();
   const { userData, isLoading: isLoadingUserData } = useUserData();
   const { mostrarToast, mostrarFeedback } = useFeedback();
@@ -55,6 +59,21 @@ export function RequestsPage() {
     telefone: "",
     documentos: [],
   });
+
+  // Extrair parâmetro de tipo do currentPage
+  const [tipoFromURL, setTipoFromURL] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Extrair parâmetro da prop currentPage
+    if (currentPage.includes('?tipo=')) {
+      const tipoParam = currentPage.split('?tipo=')[1];
+      setTipoFromURL(tipoParam);
+      setSelectedType(tipoParam);
+    } else {
+      setTipoFromURL(null);
+      setSelectedType("");
+    }
+  }, [currentPage]);
 
   // Preencher dados automaticamente quando userData estiver disponível
   useEffect(() => {
@@ -294,13 +313,13 @@ export function RequestsPage() {
       </Card>
 
       <Tabs defaultValue="classic" className="w-full">
-        <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 print:hidden">
+        <TabsList className={`grid w-full max-w-md mx-auto grid-cols-2 print:hidden ${tipoFromURL ? 'hidden' : ''}`}>
           <TabsTrigger value="classic">Formulários Clássicos</TabsTrigger>
-          <TabsTrigger value="digital">Sistema Digital</TabsTrigger>
+          <TabsTrigger value="digital" disabled title="Em breve">Sistema Digital (Em breve)</TabsTrigger>
         </TabsList>
 
         <TabsContent value="classic" className="mt-6">
-          <ClassicFormsView />
+          <ClassicFormsView initialFormId={tipoFromURL} hideSidebar={!!tipoFromURL} />
         </TabsContent>
 
         <TabsContent value="digital" className="mt-6">

@@ -10,16 +10,31 @@ interface ModalConfirmProps {
 }
 
 const ModalConfirm: React.FC<ModalConfirmProps> = ({ show, titulo, mensagem, onConfirm, onCancel }) => {
+  React.useEffect(() => {
+    if (!show) return;
+    document.body.classList.add('confirm-modal-open');
+    return () => {
+      document.body.classList.remove('confirm-modal-open');
+    };
+  }, [show]);
+
   if (!show) return null;
+  const handleCancel = (event?: React.MouseEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    onCancel();
+  };
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10002]"
-      onClick={onCancel}
+      className="confirm-modal-root fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10002] animate-in fade-in-0 duration-150"
+      onClick={handleCancel}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-background rounded-xl p-6 w-[90%] max-w-[450px] shadow-2xl"
+        onMouseDown={(e) => e.stopPropagation()}
+        className="bg-background rounded-xl p-6 w-[90%] max-w-[450px] shadow-2xl animate-in zoom-in-95 fade-in-0 duration-150"
       >
         {/* Ícone de pergunta */}
         <div className="text-center mb-5">
@@ -46,7 +61,11 @@ const ModalConfirm: React.FC<ModalConfirmProps> = ({ show, titulo, mensagem, onC
         {/* Botões */}
         <div className="flex gap-3">
           <button
-            onClick={onCancel}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={handleCancel}
             className="flex-1 py-3 bg-muted text-foreground border-none rounded-lg text-sm font-semibold cursor-pointer transition-all hover:bg-muted/80"
           >
             Cancelar

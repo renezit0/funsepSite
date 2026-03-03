@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, UserPlus, UserCog } from "lucide-react";
+import { Users, UserPlus, UserCog, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardStats {
@@ -71,25 +71,18 @@ export function DashboardPage() {
     },
   ];
 
-  if (loading) {
-    return (
-      <div className="space-y-4 sm:space-y-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader className="animate-pulse">
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-              </CardHeader>
-              <CardContent className="animate-pulse">
-                <div className="h-6 sm:h-8 bg-muted rounded w-1/2"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const SkeletonStatCard = () => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="skeleton-shimmer h-4 w-32 rounded"></div>
+        <div className="skeleton-shimmer h-4 w-4 rounded"></div>
+      </CardHeader>
+      <CardContent>
+        <div className="skeleton-shimmer h-8 w-20 rounded mb-2"></div>
+        <div className="skeleton-shimmer h-3 w-full rounded"></div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -99,28 +92,50 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {statCards.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium leading-tight">{stat.title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl sm:text-2xl font-bold">{stat.value.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {loading ? (
+          <>
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </>
+        ) : (
+          statCards.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={index}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium leading-tight">{stat.title}</CardTitle>
+                  <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xl sm:text-2xl font-bold">{stat.value.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
 
+      <Card className="border-l-4 border-l-primary">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <Info className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-sm sm:text-base">Informações do Sistema</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Visão geral do sistema FUNSEP com estatísticas dos associados, dependentes e usuários administrativos.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
-        <CardHeader>
-          <CardTitle>Informações do Sistema</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">Detalhes do Sistema</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0">
           <div className="space-y-4">
             <div>
               <h3 className="font-semibold">Status dos Associados</h3>

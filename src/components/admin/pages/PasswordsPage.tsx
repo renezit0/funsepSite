@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Search, Key, Plus, Edit2, Trash2, UserCheck } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Search, Key, Plus, Edit2, Trash2, UserCheck, Info, Mail } from "lucide-react";
+import { supabase, SUPABASE_CONFIG } from "@/integrations/supabase/client";
 import { useFeedback } from "@/contexts/FeedbackContext";
 import {
   Dialog,
@@ -19,7 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 interface Senha {
   id: string;
   cpf: string;
-  senha: string;
+  senha?: string;
   matricula: number;
   nome: string;
   created_at: string;
@@ -33,6 +33,23 @@ interface Beneficiario {
   situacao: number;
 }
 
+const normalizeCpf = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined) return "";
+  const digits = String(value).replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.padStart(11, "0").slice(-11);
+};
+
+const cpfVariants = (value: string | number | null | undefined): string[] => {
+  const normalized = normalizeCpf(value);
+  if (!normalized) return [];
+
+  const compact = normalized.replace(/^0+/, "") || "0";
+  if (compact === normalized) return [normalized];
+
+  return [normalized, compact];
+};
+
 export function PasswordsPage() {
   const [senhas, setSenhas] = useState<Senha[]>([]);
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
@@ -40,7 +57,7 @@ export function PasswordsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingSenha, setEditingSenha] = useState<Senha | null>(null);
-  
+
   // Separar o campo de busca do formulário
   const [beneficiarioSearch, setBeneficiarioSearch] = useState("");
   const [formData, setFormData] = useState({
@@ -49,6 +66,10 @@ export function PasswordsPage() {
     matricula: "",
     nome: ""
   });
+
+  // Busca para enviar link de cadastro
+  const [sendLinkSearch, setSendLinkSearch] = useState("");
+
   const { session } = useAuth();
   const { mostrarToast, mostrarFeedback, mostrarConfirmacao } = useFeedback();
 
@@ -63,7 +84,7 @@ export function PasswordsPage() {
       // Carregar senhas existentes
       const { data: senhasData, error: senhasError } = await supabase
         .from('senhas')
-        .select('*')
+        .select('id, cpf, matricula, nome, created_at, created_by_sigla')
         .order('created_at', { ascending: false });
 
       if (senhasError) throw senhasError;
@@ -115,18 +136,23 @@ export function PasswordsPage() {
     e.preventDefault();
     
     try {
-      const cleanCpf = formData.cpf.replace(/\D/g, "");
+      const cleanCpf = normalizeCpf(formData.cpf);
       
       if (editingSenha) {
+        const updateData: Record<string, unknown> = {
+          cpf: cleanCpf,
+          matricula: parseInt(formData.matricula),
+          nome: formData.nome
+        };
+
+        if (formData.senha) {
+          updateData.senha = formData.senha;
+        }
+
         // Atualizar senha existente
         const { error } = await supabase
           .from('senhas')
-          .update({
-            cpf: cleanCpf,
-            senha: formData.senha,
-            matricula: parseInt(formData.matricula),
-            nome: formData.nome
-          })
+          .update(updateData)
           .eq('id', editingSenha.id);
 
         if (error) throw error;
@@ -183,12 +209,134 @@ export function PasswordsPage() {
     setEditingSenha(senha);
     setFormData({
       cpf: senha.cpf,
-      senha: senha.senha,
+      senha: "",
       matricula: senha.matricula.toString(),
       nome: senha.nome
     });
     setBeneficiarioSearch("");
     setShowCreateModal(true);
+  };
+
+  const handleSendResetLink = async (senha: Senha) => {
+    // Buscar email do beneficiário
+    const { data: beneficiario, error: benError } = await supabase
+      .from('cadben')
+      .select('email')
+      .eq('matricula', senha.matricula)
+      .maybeSingle();
+
+    if (benError || !beneficiario) {
+      mostrarFeedback('erro', 'Erro', 'Erro ao buscar dados do associado');
+      return;
+    }
+
+    if (!beneficiario.email) {
+      mostrarFeedback('erro', 'Erro', 'Associado não possui email cadastrado');
+      return;
+    }
+
+    mostrarConfirmacao(
+      'Enviar link de redefinição?',
+      `Deseja enviar um link de redefinição de senha para ${senha.nome} no email ${beneficiario.email}?`,
+      async () => {
+        try {
+          const response = await fetch(
+            `${SUPABASE_CONFIG.url}/functions/v1/request-password-reset`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${session?.token}`,
+                'apikey': SUPABASE_CONFIG.key,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                cpfOrEmail: beneficiario.email
+              })
+            }
+          );
+
+          const result = await response.json();
+
+          if (!response.ok || !result.success) {
+            mostrarFeedback('erro', 'Erro', result.error || 'Erro ao enviar link');
+            return;
+          }
+
+          mostrarToast('sucesso', 'Link enviado com sucesso!');
+        } catch (error) {
+          console.error('Erro ao enviar link:', error);
+          mostrarFeedback('erro', 'Erro', 'Erro ao enviar link de redefinição');
+        }
+      }
+    );
+  };
+
+  const handleSendLinkToAnyBeneficiary = async (beneficiario: Beneficiario) => {
+    // Buscar email completo
+    const { data: benData, error: benError } = await supabase
+      .from('cadben')
+      .select('email, nome, cpf, matricula')
+      .eq('matricula', beneficiario.matricula)
+      .maybeSingle();
+
+    if (benError || !benData) {
+      mostrarFeedback('erro', 'Erro', 'Erro ao buscar dados do associado');
+      return;
+    }
+
+    if (!benData.email) {
+      mostrarFeedback('erro', 'Erro', 'Associado não possui email cadastrado. Cadastre um email antes de enviar o link.');
+      return;
+    }
+
+    // Verificar se já tem senha
+    const { data: senhaExistente } = await supabase
+      .from('senhas')
+      .select('id')
+      .in('cpf', cpfVariants(benData.cpf))
+      .maybeSingle();
+
+    const mensagem = senhaExistente
+      ? `Deseja enviar um link de REDEFINIÇÃO de senha para ${benData.nome} no email ${benData.email}?`
+      : `Deseja enviar um link de CADASTRO de senha para ${benData.nome} no email ${benData.email}? Este associado ainda não possui senha cadastrada.`;
+
+    const titulo = senhaExistente ? 'Enviar link de redefinição?' : 'Enviar link de cadastro?';
+
+    mostrarConfirmacao(
+      titulo,
+      mensagem,
+      async () => {
+        try {
+          const response = await fetch(
+            `${SUPABASE_CONFIG.url}/functions/v1/request-password-reset`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${session?.token}`,
+                'apikey': SUPABASE_CONFIG.key,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                cpfOrEmail: benData.email
+              })
+            }
+          );
+
+          const result = await response.json();
+
+          if (!response.ok || !result.success) {
+            mostrarFeedback('erro', 'Erro', result.error || 'Erro ao enviar link');
+            return;
+          }
+
+          mostrarToast('sucesso', 'Link enviado com sucesso para ' + benData.email);
+          setSendLinkSearch(""); // Limpar busca
+        } catch (error) {
+          console.error('Erro ao enviar link:', error);
+          mostrarFeedback('erro', 'Erro', 'Erro ao enviar link');
+        }
+      }
+    );
   };
 
   const formatCPF = (value: string) => {
@@ -204,7 +352,7 @@ export function PasswordsPage() {
       ...formData,
       matricula: beneficiario.matricula.toString(),
       nome: beneficiario.nome,
-      cpf: beneficiario.cpf.toString()
+      cpf: normalizeCpf(beneficiario.cpf)
     });
     setBeneficiarioSearch(beneficiario.nome);
   };
@@ -217,20 +365,20 @@ export function PasswordsPage() {
   });
 
   // Função para remover acentos e normalizar texto
-  const normalizeText = (text: string): string => {
+  function normalizeText(text: string): string {
     return text
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '') // Remove acentos
       .trim();
-  };
+  }
 
   // Função para verificar se é número
-  const isNumeric = (str: string): boolean => {
+  function isNumeric(str: string): boolean {
     return /^\d+$/.test(str.trim());
-  };
+  }
 
-  // Filtro otimizado para beneficiários
+  // Filtro otimizado para beneficiários (modal de criar senha)
   const filteredBeneficiarios = useMemo(() => {
     if (!beneficiarioSearch || beneficiarioSearch.trim().length === 0) {
       return [];
@@ -238,7 +386,7 @@ export function PasswordsPage() {
 
     const searchTerm = beneficiarioSearch.trim();
     const isNumberSearch = isNumeric(searchTerm);
-    
+
     // Regras de busca:
     // - Para números (matrícula/CPF): busca exata
     // - Para texto: mínimo 3 caracteres
@@ -247,14 +395,14 @@ export function PasswordsPage() {
     }
 
     const normalizedSearch = normalizeText(searchTerm);
-    
+
     const filtered = beneficiarios.filter(ben => {
       if (!ben) return false;
-      
+
       const nome = ben.nome ? normalizeText(ben.nome.toString()) : '';
       const matricula = ben.matricula ? ben.matricula.toString() : '';
-      const cpf = ben.cpf ? ben.cpf.toString() : '';
-      
+      const cpf = ben.cpf ? normalizeCpf(ben.cpf) : '';
+
       if (isNumberSearch) {
         // Para números: busca exata em matrícula ou CPF
         return matricula === searchTerm || cpf.includes(searchTerm);
@@ -263,41 +411,148 @@ export function PasswordsPage() {
         return nome.includes(normalizedSearch);
       }
     });
-    
+
     return filtered.slice(0, 50); // Limita a 50 resultados
   }, [beneficiarios, beneficiarioSearch]);
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Gerenciar Senhas</h1>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
+  // Filtro para envio de link (card separado)
+  const filteredBeneficiariosForLink = useMemo(() => {
+    if (!sendLinkSearch || sendLinkSearch.trim().length === 0) {
+      return [];
+    }
+
+    const searchTerm = sendLinkSearch.trim();
+    const isNumberSearch = isNumeric(searchTerm);
+
+    if (!isNumberSearch && searchTerm.length < 3) {
+      return [];
+    }
+
+    const normalizedSearch = normalizeText(searchTerm);
+
+    const filtered = beneficiarios.filter(ben => {
+      if (!ben) return false;
+
+      const nome = ben.nome ? normalizeText(ben.nome.toString()) : '';
+      const matricula = ben.matricula ? ben.matricula.toString() : '';
+      const cpf = ben.cpf ? normalizeCpf(ben.cpf) : '';
+
+      if (isNumberSearch) {
+        return matricula === searchTerm || cpf.includes(searchTerm);
+      } else {
+        return nome.includes(normalizedSearch);
+      }
+    });
+
+    return filtered.slice(0, 50);
+  }, [beneficiarios, sendLinkSearch]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Key className="h-8 w-8" />
-          Gerenciar Senhas de Acesso
-        </h1>
-        <p className="text-muted-foreground">
-          Cadastre e gerencie senhas de acesso para beneficiários
-        </p>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <Key className="h-6 w-6 sm:h-8 sm:w-8" />
+            Gerenciar Senhas de Acesso
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            Cadastre e gerencie senhas de acesso para beneficiários
+          </p>
+        </div>
       </div>
 
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1 max-w-md">
+      <Card className="border-l-4 border-l-primary">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <Info className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-sm sm:text-base">Gerenciamento de Senhas</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Cadastre e gerencie senhas de acesso para associados. As senhas permitem que os beneficiários acessem o sistema.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Card para enviar link de cadastro/redefinição */}
+      <Card className="border-l-4 border-l-blue-500">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Enviar Link de Cadastro/Redefinição
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Busque um associado e envie um link por email para cadastrar ou redefinir senha
+          </p>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 pt-0">
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar associado por nome (min. 3 letras) ou matrícula/CPF..."
+                value={sendLinkSearch}
+                onChange={(e) => setSendLinkSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {sendLinkSearch && (
+              <div className="max-h-80 overflow-y-auto border rounded-md">
+                {filteredBeneficiariosForLink.length > 0 ? (
+                  filteredBeneficiariosForLink.map((ben) => (
+                    <div
+                      key={ben.matricula}
+                      className="p-3 hover:bg-accent border-b last:border-b-0 flex items-center justify-between gap-4"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">{ben.nome}</div>
+                        <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
+                          <span>CPF: {formatCPF(normalizeCpf(ben.cpf))}</span>
+                          <span>Mat: {ben.matricula}</span>
+                          <Badge variant={ben.situacao === 1 || ben.situacao === 2 ? "outline" : "destructive"}>
+                            {ben.situacao === 1 || ben.situacao === 2 ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSendLinkToAnyBeneficiary(ben)}
+                        className="gap-2"
+                      >
+                        <Mail className="h-4 w-4" />
+                        Enviar Link
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground p-4 text-center">
+                    {(() => {
+                      const searchTerm = sendLinkSearch.trim();
+                      const isNumber = /^\d+$/.test(searchTerm);
+
+                      if (!isNumber && searchTerm.length < 3) {
+                        return "Digite pelo menos 3 letras para buscar nomes";
+                      }
+                      return `Nenhum associado encontrado para "${sendLinkSearch}"`;
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+        <div className="relative flex-1 max-w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome, CPF ou matrícula..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 text-sm sm:text-base"
           />
         </div>
         
@@ -310,14 +565,14 @@ export function PasswordsPage() {
           }
         }}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" />
-              Nova Senha
+              <span className="sm:inline">Nova Senha</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">
                 {editingSenha ? "Editar Senha" : "Cadastrar Nova Senha"}
               </DialogTitle>
             </DialogHeader>
@@ -346,10 +601,10 @@ export function PasswordsPage() {
                             <div>
                               <div className="font-medium">{ben.nome}</div>
                               <div className="text-sm text-muted-foreground">
-                                CPF: {formatCPF(ben.cpf.toString())}
+                                CPF: {formatCPF(normalizeCpf(ben.cpf))}
                               </div>
                             </div>
-                            <Badge variant={ben.situacao === 1 ? "outline" : "destructive"}>
+                            <Badge variant={ben.situacao === 1 || ben.situacao === 2 ? "outline" : "destructive"}>
                               Mat: {ben.matricula}
                             </Badge>
                           </button>
@@ -372,7 +627,7 @@ export function PasswordsPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="nome">Nome</Label>
+                  <Label htmlFor="nome">Nome *</Label>
                   <Input
                     id="nome"
                     value={formData.nome}
@@ -384,7 +639,7 @@ export function PasswordsPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF</Label>
+                  <Label htmlFor="cpf">CPF *</Label>
                   <Input
                     id="cpf"
                     placeholder="000.000.000-00"
@@ -396,19 +651,20 @@ export function PasswordsPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="senha">Senha</Label>
+                  <Label htmlFor="senha">Senha *</Label>
                   <Input
                     id="senha"
                     type="password"
                     value={formData.senha}
                     onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
-                    required
+                    placeholder={editingSenha ? "Deixe em branco para não alterar" : "Digite a senha"}
+                    required={!editingSenha}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="matricula">Matrícula</Label>
+                <Label htmlFor="matricula">Matrícula *</Label>
                 <Input
                   id="matricula"
                   value={formData.matricula}
@@ -418,16 +674,17 @@ export function PasswordsPage() {
                 />
               </div>
               
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" className="flex-1">
-                  {editingSenha ? "Atualizar" : "Cadastrar"}
-                </Button>
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => setShowCreateModal(false)}
+                  className="w-full sm:w-auto"
                 >
                   Cancelar
+                </Button>
+                <Button type="submit" className="w-full sm:w-auto">
+                  {editingSenha ? "Atualizar" : "Cadastrar"}
                 </Button>
               </div>
             </form>
@@ -436,26 +693,136 @@ export function PasswordsPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>
-            {filteredSenhas.length} senhas cadastradas
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">
+            Senhas cadastradas ({loading ? 0 : filteredSenhas.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0">
           <div className="space-y-4">
-            {filteredSenhas.map((senha) => (
+            {loading ? (
+              <>
+                <div className="border border-border rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="skeleton-shimmer h-5 w-5 rounded"></div>
+                        <div className="skeleton-shimmer h-5 w-48 rounded"></div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="skeleton-shimmer h-4 w-32 rounded"></div>
+                        <div className="skeleton-shimmer h-4 w-24 rounded"></div>
+                        <div className="skeleton-shimmer h-4 w-20 rounded"></div>
+                      </div>
+                      <div className="skeleton-shimmer h-4 w-40 rounded"></div>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <div className="skeleton-shimmer h-8 w-20 rounded"></div>
+                      <div className="skeleton-shimmer h-8 w-20 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="border border-border rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="skeleton-shimmer h-5 w-5 rounded"></div>
+                        <div className="skeleton-shimmer h-5 w-48 rounded"></div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="skeleton-shimmer h-4 w-32 rounded"></div>
+                        <div className="skeleton-shimmer h-4 w-24 rounded"></div>
+                        <div className="skeleton-shimmer h-4 w-20 rounded"></div>
+                      </div>
+                      <div className="skeleton-shimmer h-4 w-40 rounded"></div>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <div className="skeleton-shimmer h-8 w-20 rounded"></div>
+                      <div className="skeleton-shimmer h-8 w-20 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="border border-border rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="skeleton-shimmer h-5 w-5 rounded"></div>
+                        <div className="skeleton-shimmer h-5 w-48 rounded"></div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="skeleton-shimmer h-4 w-32 rounded"></div>
+                        <div className="skeleton-shimmer h-4 w-24 rounded"></div>
+                        <div className="skeleton-shimmer h-4 w-20 rounded"></div>
+                      </div>
+                      <div className="skeleton-shimmer h-4 w-40 rounded"></div>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <div className="skeleton-shimmer h-8 w-20 rounded"></div>
+                      <div className="skeleton-shimmer h-8 w-20 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="border border-border rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="skeleton-shimmer h-5 w-5 rounded"></div>
+                        <div className="skeleton-shimmer h-5 w-48 rounded"></div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="skeleton-shimmer h-4 w-32 rounded"></div>
+                        <div className="skeleton-shimmer h-4 w-24 rounded"></div>
+                        <div className="skeleton-shimmer h-4 w-20 rounded"></div>
+                      </div>
+                      <div className="skeleton-shimmer h-4 w-40 rounded"></div>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <div className="skeleton-shimmer h-8 w-20 rounded"></div>
+                      <div className="skeleton-shimmer h-8 w-20 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="border border-border rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="skeleton-shimmer h-5 w-5 rounded"></div>
+                        <div className="skeleton-shimmer h-5 w-48 rounded"></div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="skeleton-shimmer h-4 w-32 rounded"></div>
+                        <div className="skeleton-shimmer h-4 w-24 rounded"></div>
+                        <div className="skeleton-shimmer h-4 w-20 rounded"></div>
+                      </div>
+                      <div className="skeleton-shimmer h-4 w-40 rounded"></div>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <div className="skeleton-shimmer h-8 w-20 rounded"></div>
+                      <div className="skeleton-shimmer h-8 w-20 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : filteredSenhas.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Key className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p>Nenhuma senha encontrada com os filtros aplicados.</p>
+              </div>
+            ) : (
+              <>
+                {filteredSenhas.map((senha) => (
               <div
                 key={senha.id}
                 className="border border-border rounded-lg p-4 hover:bg-accent/50 transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-2">
-                      <UserCheck className="h-5 w-5 text-primary" />
-                      <h3 className="font-semibold">{senha.nome}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <UserCheck className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                      <h3 className="font-semibold text-sm sm:text-base leading-tight">{senha.nome}</h3>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs sm:text-sm text-muted-foreground">
                       <div>
                         <strong>CPF:</strong> {formatCPF(senha.cpf)}
                       </div>
@@ -472,30 +839,40 @@ export function PasswordsPage() {
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex gap-2 ml-4 flex-shrink-0 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSendResetLink(senha)}
+                      className="h-8 text-xs"
+                      title="Enviar link de redefinição"
+                    >
+                      <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="hidden sm:inline">Link</span>
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleEdit(senha)}
+                      className="h-8 text-xs"
                     >
-                      <Edit2 className="h-4 w-4" />
+                      <Edit2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="hidden sm:inline">Editar</span>
                     </Button>
                     <Button
                       size="sm"
                       variant="destructive"
                       onClick={() => handleDelete(senha.id)}
+                      className="h-8 text-xs"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="hidden sm:inline">Excluir</span>
                     </Button>
                   </div>
                 </div>
               </div>
-            ))}
-            
-            {filteredSenhas.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhuma senha encontrada com os filtros aplicados.
-              </div>
+                ))}
+              </>
             )}
           </div>
         </CardContent>

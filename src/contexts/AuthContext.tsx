@@ -24,12 +24,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const currentSession = adminAuth.getSession();
       if (currentSession) {
-        const isValid = await adminAuth.validateSession();
-        if (isValid) {
-          setSession(currentSession);
+        // Validar e obter dados reais do servidor
+        const refreshedSession = await adminAuth.refreshSession();
+        if (refreshedSession) {
+          setSession(refreshedSession);
         } else {
           setSession(null);
         }
+      } else {
+        setSession(null);
       }
     } catch (error) {
       console.error("Error checking auth status:", error);
