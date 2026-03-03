@@ -3,14 +3,15 @@ import { LayoutDashboard, Users, UserPlus, Shield, Key, Newspaper, FileText, Log
 import { Button } from "@/components/ui/button";
 import { AdminSession } from "@/services/adminAuth";
 import { AdminPageType } from "@/pages/AdminDashboard";
-import funsepLogo from "@/assets/funsep-logo.png";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
+
 interface AdminSidebarProps {
   currentPage: AdminPageType;
   onPageChange: (page: AdminPageType) => void;
   session: AdminSession;
   onLogout: () => void;
 }
+
 const navigation = [{
   id: 'dashboard' as AdminPageType,
   label: 'Dashboard',
@@ -48,20 +49,20 @@ const navigation = [{
   label: 'Relatórios',
   icon: BarChart3
 }];
+
 export function AdminSidebar({
   currentPage,
   onPageChange,
   session,
   onLogout
 }: AdminSidebarProps) {
-  const {
-    state
-  } = useSidebar();
+  const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  return <Sidebar collapsible="icon" className="border-r">
+
+  return (
+    <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-6 border-b">
         <div className="flex items-center gap-3">
-          
           {!collapsed && <div className="min-w-0">
               <h1 className="font-bold text-lg truncate">FUNSEP Admin</h1>
               <p className="text-sm text-muted-foreground truncate">Painel Administrativo</p>
@@ -75,15 +76,17 @@ export function AdminSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               {navigation.map(item => {
-              const Icon = item.icon;
-              const isActive = currentPage === item.id;
-              return <SidebarMenuItem key={item.id}>
+                const Icon = item.icon;
+                const isActive = currentPage === item.id;
+                return (
+                  <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton isActive={isActive} onClick={() => onPageChange(item.id)} className="h-12">
                       <Icon className="h-5 w-5" />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>;
-            })}
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -106,5 +109,6 @@ export function AdminSidebar({
           {!collapsed && <span>Sair</span>}
         </Button>
       </SidebarFooter>
-    </Sidebar>;
+    </Sidebar>
+  );
 }
