@@ -13,25 +13,28 @@ import { NewsPage } from "@/components/admin/pages/NewsPage";
 import { ReportsPage } from "@/components/admin/pages/ReportsPage";
 import { ReportsStatsPage } from "@/components/admin/pages/ReportsStatsPage";
 import { RequestsPage } from "@/components/admin/pages/RequestsPage";
+import { SupportMessagesPage } from "@/components/admin/pages/SupportMessagesPage";
 import { SobreFunsepManagementPage } from "@/components/admin/pages/SobreFunsepManagementPage";
 import { AuditLogsPage } from "@/components/admin/pages/AuditLogsPage";
+import { ResetControlPage } from "@/components/admin/pages/ResetControlPage";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { extractClickInfo, logAuditEvent } from "@/utils/auditLogger";
 
-export type AdminPageType = 'dashboard' | 'beneficiarios' | 'dependentes' | 'usuarios' | 'senhas' | 'noticias' | 'relatorios' | 'estatisticas-relatorios' | 'requerimentos' | 'sobre-funsep' | 'auditoria';
+export type AdminPageType = 'dashboard' | 'beneficiarios' | 'dependentes' | 'usuarios' | 'senhas' | 'controle-redefinicoes' | 'noticias' | 'relatorios' | 'estatisticas-relatorios' | 'requerimentos' | 'mensagens-suporte' | 'sobre-funsep' | 'auditoria';
 
-export default function AdminDashboard() {
+export function AdminDashboard() {
   const [currentPage, setCurrentPage] = useState<AdminPageType>('dashboard');
   const [session, setSession] = useState<AdminSession | null>(null);
   const currentPageRef = useRef(currentPage);
   const navigate = useNavigate();
   const { logout: authLogout } = useAuth();
+  const isDesktopApp = typeof window !== "undefined" && !!window.funsepDesktop;
 
   useEffect(() => {
     const checkAuth = async () => {
       const isValid = await adminAuth.validateSession();
       if (!isValid) {
-        navigate('/');
+        navigate(isDesktopApp ? '/admin' : '/');
         return;
       }
       
@@ -42,7 +45,7 @@ export default function AdminDashboard() {
       if (!currentSession || !adminRoles.includes(currentSession.user.cargo)) {
         console.error('Unauthorized access attempt to admin panel');
         await adminAuth.logout();
-        navigate('/');
+        navigate(isDesktopApp ? '/admin' : '/');
         return;
       }
       
@@ -50,7 +53,7 @@ export default function AdminDashboard() {
     };
 
     checkAuth();
-  }, [navigate]);
+  }, [isDesktopApp, navigate]);
 
   const handleLogout = async () => {
     try {
@@ -65,11 +68,11 @@ export default function AdminDashboard() {
       setCurrentPage('dashboard');
       
       // Redirecionar para home
-      navigate('/');
+      navigate(isDesktopApp ? '/admin' : '/');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
       // Mesmo com erro, tentar redirecionar
-      navigate('/');
+      navigate(isDesktopApp ? '/admin' : '/');
     }
   }
 
@@ -140,6 +143,15 @@ export default function AdminDashboard() {
         return <UsersPage />;
       case 'senhas':
         return <PasswordsPage />;
+      case 'controle-redefinicoes':
+        if (session.user.cargo !== 'DESENVOLVEDOR') {
+          return (
+            <div className="text-sm text-muted-foreground">
+              Acesso restrito aos desenvolvedores.
+            </div>
+          );
+        }
+        return <ResetControlPage />;
       case 'noticias':
         return <NewsPage />;
       case 'relatorios':
@@ -148,6 +160,8 @@ export default function AdminDashboard() {
         return <ReportsStatsPage />;
       case 'requerimentos':
         return <RequestsPage />;
+      case 'mensagens-suporte':
+        return <SupportMessagesPage />;
       case 'sobre-funsep':
         return <SobreFunsepManagementPage />;
       case 'auditoria':
@@ -172,12 +186,14 @@ export default function AdminDashboard() {
           onPageChange={setCurrentPage}
           session={session}
           onLogout={handleLogout}
+          onGoHome={() => navigate(isDesktopApp ? '/admin' : '/')}
         />
         
-        <SidebarInset className="w-full max-w-full overflow-x-hidden flex flex-col" style={{ paddingTop: '81px' }}>
+        <SidebarInset className={`w-full max-w-full overflow-x-hidden flex flex-col ${isDesktopApp ? 'pt-[104px] sm:pt-[108px] md:pt-[112px]' : 'pt-16 sm:pt-[72px] md:pt-[78px]'}`}>
           <AdminHeader
             session={session}
             onLogout={handleLogout}
+            onOpenSupportMessages={() => setCurrentPage('mensagens-suporte')}
           />
           
           <main className="flex-1 p-3 sm:p-4 md:p-5 lg:p-6 overflow-y-auto overflow-x-hidden min-h-0 w-full max-w-full">
@@ -188,3 +204,5 @@ export default function AdminDashboard() {
     </SidebarProvider>
   );
 }
+
+export default AdminDashboard;

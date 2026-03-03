@@ -182,7 +182,7 @@ All colors MUST be HSL.
       font-size: 14px;
     }
 
-    /* Avoid iOS input zoom */
+    /* Mobile typography balance for form controls */
     input,
     select,
     textarea,
@@ -190,20 +190,13 @@ All colors MUST be HSL.
     [role="textbox"],
     [role="searchbox"],
     [role="combobox"] {
-      font-size: 16px !important;
-      line-height: 1.25 !important;
+      font-size: 14px;
+      line-height: 1.3;
     }
 
-    /* Better touch targets - exclui checkboxes, switches e botões pequenos */
-    button:not([role="checkbox"]):not([role="switch"]):not([data-small-button]),
-    [role="button"]:not([role="checkbox"]):not([role="switch"]):not([data-small-button]) {
-      min-height: 44px;
-    }
-
-    /* Force small buttons to have no min-height */
-    button[data-small-button],
-    [role="button"][data-small-button] {
-      min-height: 0 !important;
+    button:not([role="checkbox"]):not([role="switch"]),
+    [role="button"]:not([role="checkbox"]):not([role="switch"]) {
+      font-size: 14px;
     }
 
     /* Better scrollable areas */
@@ -226,17 +219,19 @@ All colors MUST be HSL.
     }
   }
 
-  /* iOS/Safari: prevent input focus zoom on touch devices */
-  @media (hover: none) and (pointer: coarse) {
-    input,
-    select,
-    textarea,
-    [contenteditable="true"],
-    [role="textbox"],
-    [role="searchbox"],
-    [role="combobox"] {
-      font-size: 16px !important;
-      line-height: 1.25 !important;
+  /* iOS Safari: keep 16px to prevent zoom-on-focus */
+  @supports (-webkit-touch-callout: none) {
+    @media (hover: none) and (pointer: coarse) {
+      input,
+      select,
+      textarea,
+      [contenteditable="true"],
+      [role="textbox"],
+      [role="searchbox"],
+      [role="combobox"] {
+        font-size: 16px !important;
+        line-height: 1.25 !important;
+      }
     }
   }
 
@@ -268,6 +263,23 @@ All colors MUST be HSL.
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none; /* Chrome, Safari and Opera */
+  }
+
+  .desktop-drag-region {
+    -webkit-app-region: drag;
+    app-region: drag;
+    user-select: none;
+  }
+
+  .desktop-no-drag {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+
+  .desktop-traffic-btn {
+    @apply h-4 w-4 rounded-full flex items-center justify-center border border-black/10;
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
   }
 }
 
@@ -441,16 +453,10 @@ All colors MUST be HSL.
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    padding: 1cm !important;
+    padding: 0.6cm !important;
     box-shadow: none !important;
     border: none !important;
     background: white !important;
-  }
-
-  /* Fix grid layout in print - SOMENTE para formulários */
-  #printable-content .grid {
-    display: block !important;
-    grid-template-columns: 1fr !important;
   }
 
   /* Ensure content is visible - SOMENTE para formulários */
@@ -482,14 +488,14 @@ All colors MUST be HSL.
   #printable-content span,
   #printable-content label,
   #printable-content strong {
-    font-size: 11pt !important;
-    line-height: 1.5 !important;
+    font-size: 10pt !important;
+    line-height: 1.35 !important;
   }
 
   #printable-content h1,
   #printable-content h2,
   #printable-content h3 {
-    font-size: 13pt !important;
+    font-size: 12pt !important;
     font-weight: bold !important;
     page-break-after: avoid;
   }
@@ -503,7 +509,7 @@ All colors MUST be HSL.
     background: white !important;
     color: #000 !important;
     padding: 2px 4px !important;
-    font-size: 11pt !important;
+    font-size: 10pt !important;
     -webkit-appearance: none !important;
     appearance: none !important;
     font-family: inherit !important;
@@ -536,7 +542,7 @@ All colors MUST be HSL.
 
   #printable-content textarea {
     border: 1px solid #000 !important;
-    min-height: 80px !important;
+    min-height: 60px !important;
     display: block !important;
     width: 100% !important;
   }
@@ -561,8 +567,8 @@ All colors MUST be HSL.
   /* Spacing for signature area - SOMENTE para formulários */
   #printable-content .my-16,
   #printable-content .print\\:my-20 {
-    margin-top: 100pt !important;
-    margin-bottom: 30pt !important;
+    margin-top: 60pt !important;
+    margin-bottom: 20pt !important;
     page-break-inside: avoid !important;
   }
 
@@ -592,30 +598,34 @@ All colors MUST be HSL.
     font-weight: 600 !important;
   }
 
-  /* Avoid page breaks inside elements - SOMENTE para formulários */
-  #printable-content p,
-  #printable-content div,
-  #printable-content section,
-  #printable-content .space-y-6 > div {
-    page-break-inside: avoid;
+  /* Evitar quebra apenas nos blocos que precisam ficar inteiros (evita "páginas quase em branco") */
+  #printable-content .avoid-break,
+  #printable-content [data-optional-scope='true'],
+  #printable-content .signature-block,
+  #printable-content [class*="border-l-4"],
+  #printable-content table,
+  #printable-content tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   /* Page breaks before major sections if needed - SOMENTE para formulários */
   #printable-content .page-break {
-    page-break-after: always;
+    page-break-before: always;
+    break-before: page;
   }
 
   /* Spacing adjustments - SOMENTE para formulários */
   #printable-content .space-y-6 > * + * {
-    margin-top: 12pt !important;
-  }
-
-  #printable-content .space-y-4 > * + * {
     margin-top: 8pt !important;
   }
 
+  #printable-content .space-y-4 > * + * {
+    margin-top: 6pt !important;
+  }
+
   #printable-content .space-y-2 > * + * {
-    margin-top: 4pt !important;
+    margin-top: 3pt !important;
   }
 }
 
@@ -758,5 +768,16 @@ All colors MUST be HSL.
 
   :where([data-sonner-toast]) {
     z-index: 9999 !important;
+  }
+
+  /* Evita interação/click em Dialogs do Radix enquanto modal de feedback/confirmação está aberto */
+  body.feedback-modal-open [data-radix-portal],
+  body.confirm-modal-open [data-radix-portal] {
+    pointer-events: none !important;
+  }
+
+  body.feedback-modal-open .feedback-modal-root,
+  body.confirm-modal-open .confirm-modal-root {
+    pointer-events: auto;
   }
 }
