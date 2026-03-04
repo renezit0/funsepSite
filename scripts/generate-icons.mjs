@@ -14,7 +14,7 @@ const root = path.resolve(__dirname, '..');
 const srcArg = process.argv[2];
 const sourceSvg = srcArg
   ? path.resolve(process.cwd(), srcArg)
-  : path.join(root, 'public', 'images', 'logo-funsep-completa.svg');
+  : path.join(root, 'public', 'favicon.svg');
 
 const electronDir = path.join(root, 'electron', 'icons');
 const publicIconsDir = path.join(root, 'public', 'icons');

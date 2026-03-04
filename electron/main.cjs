@@ -162,10 +162,14 @@ function createWindow() {
   if (startUrl.startsWith('http://') || startUrl.startsWith('https://')) {
     mainWindow.loadURL(startUrl);
   } else if (app.isPackaged) {
-    mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), { hash: '/admin' });
   } else {
     mainWindow.loadURL(startUrl);
   }
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error('Electron did-fail-load:', { errorCode, errorDescription, validatedURL });
+  });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
