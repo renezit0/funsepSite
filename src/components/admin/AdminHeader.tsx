@@ -23,7 +23,6 @@ export function AdminHeader({ session, onLogout, onOpenSupportMessages }: AdminH
   const [pendingSupportCount, setPendingSupportCount] = useState(0);
   const [pendingPreview, setPendingPreview] = useState<Array<{ id: string; nome: string; mensagem: string; created_at: string }>>([]);
   const [isDesktop, setIsDesktop] = useState(false);
-  const [desktopPlatform, setDesktopPlatform] = useState("");
   const [windowMaximized, setWindowMaximized] = useState(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<{ type: string; message: string }>({
@@ -38,12 +37,6 @@ export function AdminHeader({ session, onLogout, onOpenSupportMessages }: AdminH
     if (!desktopApi) return;
 
     setIsDesktop(true);
-
-    desktopApi.getMeta().then((meta) => {
-      setDesktopPlatform(meta?.platform || "");
-    }).catch(() => {
-      // noop
-    });
 
     desktopApi.getWindowState().then((state) => {
       setWindowMaximized(Boolean(state?.maximized));
@@ -151,48 +144,37 @@ export function AdminHeader({ session, onLogout, onOpenSupportMessages }: AdminH
   return (
     <header className="bg-card border-b border-border fixed top-0 left-0 md:left-[var(--sidebar-width)] right-0 z-30 w-full md:w-[calc(100%-var(--sidebar-width))] overflow-x-hidden">
       {isDesktop && (
-        <div className="desktop-drag-region h-9 border-b border-border/70 px-3 flex items-center justify-between bg-card/95">
-          <div className="desktop-no-drag flex items-center gap-2">
-            {desktopPlatform === "darwin" ? (
-              <div className="flex items-center gap-1.5 opacity-0 pointer-events-none">
-                <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-                <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-                <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  className="desktop-traffic-btn bg-[#febc2e]"
-                  onClick={() => handleWindowControl("minimize")}
-                  aria-label="Minimizar"
-                  title="Minimizar"
-                >
-                  <Minus className="h-2.5 w-2.5 text-black/70" />
-                </button>
-                <button
-                  type="button"
-                  className="desktop-traffic-btn bg-[#28c840]"
-                  onClick={() => handleWindowControl("toggle-maximize")}
-                  aria-label={windowMaximized ? "Restaurar" : "Maximizar"}
-                  title={windowMaximized ? "Restaurar" : "Maximizar"}
-                >
-                  <Square className="h-2 w-2 text-black/70" />
-                </button>
-                <button
-                  type="button"
-                  className="desktop-traffic-btn bg-[#ff5f57]"
-                  onClick={() => handleWindowControl("close")}
-                  aria-label="Fechar"
-                  title="Fechar"
-                >
-                  <X className="h-2.5 w-2.5 text-black/70" />
-                </button>
-              </div>
-            )}
+        <div className="desktop-drag-region h-10 border-b border-border/70 px-3 sm:px-4 flex items-center justify-between bg-card/95">
+          <p className="text-xs text-muted-foreground tracking-wide">FUNSEP Admin</p>
+          <div className="desktop-no-drag flex items-center gap-1.5">
+            <button
+              type="button"
+              className="desktop-traffic-btn bg-[#febc2e]"
+              onClick={() => handleWindowControl("minimize")}
+              aria-label="Minimizar"
+              title="Minimizar"
+            >
+              <Minus className="h-2.5 w-2.5 text-black/70" />
+            </button>
+            <button
+              type="button"
+              className="desktop-traffic-btn bg-[#28c840]"
+              onClick={() => handleWindowControl("toggle-maximize")}
+              aria-label={windowMaximized ? "Restaurar" : "Maximizar"}
+              title={windowMaximized ? "Restaurar" : "Maximizar"}
+            >
+              <Square className="h-2 w-2 text-black/70" />
+            </button>
+            <button
+              type="button"
+              className="desktop-traffic-btn bg-[#ff5f57]"
+              onClick={() => handleWindowControl("close")}
+              aria-label="Fechar"
+              title="Fechar"
+            >
+              <X className="h-2.5 w-2.5 text-black/70" />
+            </button>
           </div>
-          <p className="text-xs text-muted-foreground">FUNSEP Admin</p>
-          <div className="w-[54px]" />
         </div>
       )}
 
