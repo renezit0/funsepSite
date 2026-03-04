@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { FeedbackProvider } from "@/contexts/FeedbackContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -18,6 +18,7 @@ import { Navigate } from "react-router-dom";
 const queryClient = new QueryClient();
 
 const isDesktopApp = typeof window !== "undefined" && !!window.funsepDesktop;
+const AppRouter = isDesktopApp ? HashRouter : BrowserRouter;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -26,7 +27,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <AppRouter>
             <Routes>
               {isDesktopApp ? (
                 <>
@@ -52,7 +53,7 @@ const App = () => (
                 </>
               )}
             </Routes>
-          </BrowserRouter>
+          </AppRouter>
         </TooltipProvider>
       </FeedbackProvider>
     </AuthProvider>
