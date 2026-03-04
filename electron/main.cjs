@@ -29,7 +29,10 @@ function getWindowUrl() {
   if (startUrl) {
     return startUrl;
   }
-  return 'http://localhost:8080/admin';
+  if (!app.isPackaged) {
+    return 'http://localhost:8080/admin';
+  }
+  return '';
 }
 
 function getWindowState() {
