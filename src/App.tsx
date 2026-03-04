@@ -17,7 +17,9 @@ import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
-const isDesktopApp = typeof window !== "undefined" && !!window.funsepDesktop;
+const isDesktopApp =
+  typeof window !== "undefined" &&
+  (Boolean(window.funsepDesktop) || window.location.protocol === "file:");
 const AppRouter = isDesktopApp ? HashRouter : BrowserRouter;
 
 const App = () => (
